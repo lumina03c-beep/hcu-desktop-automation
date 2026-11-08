@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Local HCU builds and checkouts
+artifacts/
+Hybrid-Computer-Use/
+
+# Local configuration backups
+*.hcu-backup-*
+
+# Evaluation artifacts may contain private desktop data
+evaluations/results/
+evaluations/**/*.png
+evaluations/**/*.jpg
+evaluations/**/*.jpeg
+evaluations/**/*.webp
+evaluations/**/*.jsonl
+
+# Logs and temporary files
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Agent-local project state
+.workbuddy/
+
+# Editors
+.vscode/
+.idea/

@@ -1,0 +1,31 @@
+name: validate
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-validation:
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ['3.10', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Validate skill and repository
+        run: python scripts/validate_skill.py
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Check evaluation aggregation
+        run: python scripts/summarize_results.py evaluations/example-results.json
+      - name: Check setup CLI
+        run: python scripts/hcu_setup.py --help

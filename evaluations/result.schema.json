@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HCU Desktop Automation evaluation results",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "runs"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "runs": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/run"}
+    }
+  },
+  "$defs": {
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id", "case_id", "split", "condition", "synthetic", "started_at",
+        "platform", "client", "model", "skill_version", "hcu_version",
+        "task_success", "agent_claimed_success", "independent_verifier",
+        "evidence_level", "hcu_calls", "shell_api_calls", "model_turns",
+        "retries", "wall_time_ms", "input_tokens", "output_tokens",
+        "recovery", "error_codes"
+      ],
+      "properties": {
+        "run_id": {"type": "string", "minLength": 1},
+        "case_id": {"type": "string", "minLength": 1},
+        "split": {"enum": ["development", "validation", "holdout"]},
+        "condition": {"enum": ["A", "B", "C"]},
+        "synthetic": {"type": "boolean"},
+        "started_at": {"type": "string", "format": "date-time"},
+        "platform": {"enum": ["windows", "macos", "linux"]},
+        "client": {"type": "string", "minLength": 1},
+        "model": {"type": "string", "minLength": 1},
+        "skill_version": {"type": "string", "minLength": 1},
+        "hcu_version": {"type": "string", "minLength": 1},
+        "task_success": {"type": "boolean"},
+        "agent_claimed_success": {"type": "boolean"},
+        "independent_verifier": {"type": "string", "minLength": 1},
+        "evidence_level": {"enum": ["L1", "L2", "L3"]},
+        "hcu_calls": {"type": "integer", "minimum": 0},
+        "shell_api_calls": {"type": "integer", "minimum": 0},
+        "model_turns": {"type": "integer", "minimum": 0},
+        "retries": {"type": "integer", "minimum": 0},
+        "wall_time_ms": {"type": "integer", "minimum": 0},
+        "input_tokens": {"type": ["integer", "null"], "minimum": 0},
+        "output_tokens": {"type": ["integer", "null"], "minimum": 0},
+        "recovery": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["eligible", "recovered", "safe_stopped", "failed"],
+          "properties": {
+            "eligible": {"type": "integer", "minimum": 0},
+            "recovered": {"type": "integer", "minimum": 0},
+            "safe_stopped": {"type": "integer", "minimum": 0},
+            "failed": {"type": "integer", "minimum": 0}
+          }
+        },
+        "error_codes": {"type": "array", "items": {"type": "string"}},
+        "notes": {"type": "string"}
+      }
+    }
+  }
+}

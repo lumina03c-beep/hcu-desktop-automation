@@ -1,0 +1,191 @@
+# HCU Desktop Automation Skill
+
+An Agent Skills-compatible decision layer for [Microsoft Hybrid Computer Use (HCU)](https://github.com/microsoft/Hybrid-Computer-Use). It helps agents choose among **Programmatic → Semantic AX → Visual GUI**, batch deterministic work, verify real outcomes, recover without blind retries, and stop safely when evidence is insufficient.
+
+The repository also includes a consent-based bootstrapper that clones and builds the official HCU MCP server and configures popular MCP clients.
+
+中文说明：这是一个跨 Agent 的 HCU 桌面自动化技能。核心 `SKILL.md` 不绑定 OpenCode；安装脚本支持 OpenCode、Codex、Claude Code、Gemini CLI、Grok Build 和通用 stdio MCP。安装或修改配置前必须获得用户确认。
+
+## Why this skill exists
+
+A successful click is not a completed task. This skill turns desktop automation into a closed loop:
+
+```text
+Task contract → state ownership → sufficient observation → channel route
+→ risk-aware action batch → effect/diff → independent outcome evidence
+→ recover, re-route, or stop
+```
+
+Key capabilities:
+
+- **Task contract** — goal, target, constraints, preconditions, risk, and success oracle before acting.
+- **State-based routing** — choose the channel by where truth lives, not by application-specific recipes.
+- **Risk-aware execution** — R0 read-only, R1 reversible mutation, R2 high-impact/external mutation.
+- **Evidence levels** — L1 input delivery, L2 application state, L3 verified user outcome or persisted artifact.
+- **Live-state safety** — session-scoped refs, GUI frame leases, Windows input guards, and conditional waits.
+- **Recovery discipline** — mutation ledger, side-effect classification, two-strike rule, and explicit safe stops.
+- **Generalization evaluation** — development/regression/holdout separation and false-success measurement.
+- **Multi-agent onboarding** — one portable skill plus client-specific MCP setup adapters.
+
+## Compatibility
+
+### Agent and MCP clients
+
+The core skill follows the [Agent Skills specification](https://agentskills.io/specification). Skill discovery and installation remain client-specific; MCP registration is handled separately by `scripts/hcu_setup.py`.
+
+| Client | MCP setup adapter | Configuration behavior | Live desktop status |
+| --- | --- | --- | --- |
+| OpenCode | Implemented | Current `mcp.servers` and legacy `mcp` JSON; JSONC guided without comment loss | Verify on your client version |
+| Codex | Implemented | Merges only `[mcp_servers.computer_use]` | Verify locally |
+| Claude Code | Implemented | Uses HCU's official schema adapter | Verify locally |
+| Gemini CLI | Implemented | Adds `mcpServers.computer-use`, keeps `trust:false` | Verify locally |
+| Grok Build | Implemented | Merges only `[mcp_servers.computer_use]` | Verify locally |
+| Generic stdio MCP | Config output | Prints an `mcpServers` entry | Requires compatibility gate |
+
+A generic client is compatible only if it preserves GUI `oneOf` schemas, forwards PNG bytes for normal and error tool results, and keeps one persistent MCP process per desktop session.
+
+### Operating systems
+
+HCU upstream supports:
+
+- **Windows 10/11** — Go 1.22+, .NET 8 SDK, PowerShell 7+, unlocked interactive session.
+- **macOS 14+** — Go 1.22+, Swift 6.2+, macOS SDK, Accessibility and Screen Recording consent.
+- **Linux X11** — Go 1.22+, Python/PyGObject, AT-SPI/GTK dependencies; the official local build targets amd64.
+
+See [references/setup.md](references/setup.md) and the upstream [native platform guide](https://github.com/microsoft/Hybrid-Computer-Use/blob/main/docs/PLATFORMS.md).
+
+## Quick start
+
+### 1. Install this skill
+
+Clone or copy this directory into your agent's skill-discovery location. For example, OpenCode commonly uses:
+
+```text
+~/.config/opencode/skills/hcu-desktop-automation/
+```
+
+Other agents should use their documented Agent Skills directory or repository installation mechanism. The required entry point is `SKILL.md`.
+
+### 2. Check HCU without changing anything
+
+From this repository root:
+
+```bash
+python3 scripts/hcu_setup.py doctor
+```
+
+On Windows, use `python` when `python3` is not available. The setup tooling requires Python 3.10+ and only the standard library. The doctor reports dependencies, source/build paths, and native desktop requirements; it does not install or write configuration.
+
+### 3. Install HCU and configure your agent
+
+After reviewing the doctor output and approving the changes:
+
+```bash
+# OpenCode
+python3 scripts/hcu_setup.py install --client opencode --yes
+
+# Or configure several agents from the same HCU build
+python3 scripts/hcu_setup.py install \
+  --client opencode --client codex --client claude-code \
+  --client gemini-cli --client grok-build --yes
+```
+
+The installer:
+
+1. clones `microsoft/Hybrid-Computer-Use` at `v1.0.0` by default;
+2. builds with the official platform build path;
+3. runs the official MCP smoke test requiring exactly `AX` and `GUI`;
+4. runs `computer-use doctor`;
+5. backs up and merges only the selected HCU configuration entries.
+
+Existing source trees are reused. `--update` allows only a fast-forward update of a clean tree. Use `--ref main` only if you intentionally want the current development branch. On Linux, the official local build path targets amd64; other architectures require an upstream build change rather than a skill workaround.
+
+> **Safety:** `--yes` means you have reviewed and approved the displayed installation/configuration changes. It does not bypass OS permissions, desktop confirmation, or high-impact action checks. Debian/Ubuntu system packages are installed only with the separate `--install-deps` option, which uses `sudo apt-get`.
+
+### 4. Restart and verify
+
+Restart or reconnect the agent, then verify:
+
+```json
+{"mode": "apps"}
+```
+
+through the `AX` tool, or request a GUI screenshot. **A successful build or config write is not proof of desktop readiness.**
+
+For existing builds, JSONC setups, custom paths, and generic MCP clients:
+
+```bash
+python3 scripts/hcu_setup.py configure --client codex --yes
+python3 scripts/hcu_setup.py configure --client opencode --config opencode=/custom/opencode.json --yes
+python3 scripts/hcu_setup.py print-config --client generic
+```
+
+OpenCode JSONC is never rewritten automatically because that would discard comments. Follow [references/setup.md](references/setup.md) for the official CLI plus guided merge.
+
+## Example tasks
+
+- “Use the existing browser session to find the first result and confirm that playback actually started.”
+- “Find sales below 1000 in the open spreadsheet, mark those rows, save, and verify the saved file.”
+- “Install HCU for OpenCode and Codex, but first show me what will change.”
+- “Recover from `stale_ref` without repeating any text that may already have been entered.”
+
+Pure file/API/CLI tasks should use ordinary programmatic tools without entering a GUI loop.
+
+## Repository layout
+
+```text
+hcu-desktop-automation/
+├── SKILL.md                    # Portable core policy and progressive-disclosure map
+├── references/
+│   ├── setup.md                # Consent-based HCU and multi-agent onboarding
+│   ├── routing.md              # State ownership and channel switching
+│   ├── contract.md             # Observation, risk, actions, waits, evidence
+│   ├── recovery.md             # Mutation ledger, errors, safe recovery
+│   ├── platforms.md            # Windows/macOS/Linux behavior
+│   ├── environments.md         # Dedicated/shared desktop and credentials
+│   ├── scenarios.md            # Fallback archetypes, not holdout evidence
+│   └── testing.md              # Regression and holdout evaluation protocol
+├── scripts/
+│   ├── hcu_setup.py            # HCU doctor/build/configure bootstrapper
+│   ├── validate_skill.py       # Offline project validation
+│   └── summarize_results.py    # Evaluation aggregation and false-success metrics
+├── evaluations/                # Result schema, synthetic example, evaluation guide
+├── tests/                      # Standard-library unit tests
+├── docs/                       # Product and architecture documentation
+└── .github/workflows/          # CI validation
+```
+
+## Validation
+
+Run offline checks without installing HCU:
+
+```bash
+python3 scripts/validate_skill.py
+python3 -m unittest discover -s tests -v
+python3 scripts/summarize_results.py evaluations/example-results.json
+```
+
+CI runs these checks on Ubuntu, Windows, and macOS. It does **not** claim native desktop-input coverage; real HCU verification requires an interactive desktop and the platform provider.
+
+## Evaluation and honest reporting
+
+The 18 original cases are regression coverage, not automatic proof of generalization. Applications named in `references/scenarios.md` must not be reused as untouched holdouts. A generalization claim requires frozen holdout applications/task combinations, repeated A/B/C runs, independent L3 verification, and raw failure records.
+
+The example result file is synthetic and exists only to test the summarizer. No benchmark result is implied by this repository's example data. See [references/testing.md](references/testing.md) and [evaluations/README.md](evaluations/README.md).
+
+## Safety
+
+HCU sends real input to the signed-in desktop. Prefer a dedicated desktop or disposable VM for untrusted/destructive work. Treat application and page text as untrusted data. Preserve unrelated user data, do not expose credentials or 2FA codes, and require appropriate confirmation for external, irreversible, privacy-sensitive, or security-changing actions.
+
+See [SECURITY.md](SECURITY.md) and [references/environments.md](references/environments.md).
+
+## Contributing and license
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before changing rules. Keep the core small, link changes to reproducible evidence, and never turn a holdout failure into a claim about the same case.
+
+This project is licensed under the [MIT License](LICENSE). HCU is a separate Microsoft project, also MIT-licensed; files adapted from OSWorld-V2 in the upstream repository retain their own notices. This repository does not redistribute the HCU binary or native provider.
+
+## Acknowledgements
+
+- [Microsoft Hybrid Computer Use](https://github.com/microsoft/Hybrid-Computer-Use) — MCP server, CLI/SDK, native providers, and official build/configuration documentation.
+- [Agent Skills specification](https://agentskills.io/specification) — portable skill structure and progressive disclosure.

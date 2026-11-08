@@ -1,0 +1,17 @@
+* text=auto
+
+*.py text
+*.md text
+*.json text
+*.jsonc text
+*.toml text
+*.yml text
+*.yaml text
+LICENSE text
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.mp4 binary
