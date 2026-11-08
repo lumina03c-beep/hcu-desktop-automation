@@ -24,6 +24,21 @@
 
 仓库还包含一个基于用户确认的引导脚本，用于克隆并构建官方 HCU MCP 服务器，并配置支持 MCP 的 Agent。
 
+## 这是什么，不是什么
+
+**本项目不是 HCU。** 它是一套告诉 AI Agent *如何用好* HCU 的指令。
+
+| | 本项目 | 微软 HCU |
+| --- | --- | --- |
+| 是什么 | Markdown 策略 + Python 安装辅助脚本 | 真正的 MCP 服务器、CLI 和原生桌面 provider |
+| 用什么写的 | Markdown、Python（仅标准库） | Go、Swift、C#、TypeScript |
+| 怎么安装 | `git clone` 本仓库 | 从源码构建，或通过 `scripts/hcu_setup.py` |
+
+- 本仓库**不含任何 HCU 源码，也不含 HCU 二进制**。`scripts/hcu_setup.py` 会把 `microsoft/Hybrid-Computer-Use` 克隆到本仓库**之外**的独立目录，在那里构建。
+- 没有装 HCU，这个技能什么也做不了。HCU 不可用时，技能只会告诉 Agent 停下。
+- 真正的点击、截图、无障碍树出问题，请去 [微软的 issue 区](https://github.com/microsoft/Hybrid-Computer-Use/issues)，不是这里。
+- "HCU" 和 "Hybrid Computer Use" 指微软的项目。本仓库是独立的第三方配套项目，与微软无隶属关系。
+
 ## 为什么需要这个技能
 
 点击成功不等于任务完成。大多数桌面自动化失败的原因不是点丢了，而是点完之后没人检查发生了什么。这个技能把桌面自动化变成一个闭环：
@@ -46,6 +61,33 @@
 - **多 Agent 接入** — 一个可移植技能 + 各客户端专属的 MCP 配置适配器。
 
 ## 快速开始
+
+> **先读这段。** 没有一键安装包。要跑起 HCU 就得编译原生代码，需要几分钟，而且机器上得先有 Go 1.22+、.NET 8 SDK（Windows）和 PowerShell 7+。下面的步骤会替你完成这些活儿，但第一次构建不是瞬间的事。
+
+**最快的路径，三条命令：**
+
+```bash
+git clone https://github.com/lumina03c-beep/hcu-desktop-automation.git
+cd hcu-desktop-automation
+python3 scripts/hcu_setup.py doctor     # 只读：告诉你缺什么
+```
+
+如果 `doctor` 显示所有工具都可用，就运行 `python3 scripts/hcu_setup.py install` 并批准它打印的方案。如果缺东西，先装那个工具 —— doctor 会点名。
+
+### 技能该放在哪
+
+不同 Agent 的技能目录不一样。把克隆下来的文件夹复制或软链到对应位置：
+
+| Agent | 技能目录 | 备注 |
+| --- | --- | --- |
+| Claude Code | `~/.claude/skills/` | 个人技能；项目级放在仓库内的 `.claude/skills/` |
+| OpenCode | `~/.config/opencode/skills/` | 全局；单个项目用 `.opencode/skills/` |
+| Codex | `~/.codex/skills/` | 加完后重启 CLI |
+| Gemini CLI | `~/.gemini/skills/` | 以你版本的文件为准 —— 这个路径各版本间变过 |
+| Grok Build | `~/.grok/skills/` | 以你版本的文件为准 |
+| 其他 | 你的 Agent 文档 | 要求是根目录下有 `SKILL.md` 的文件夹 |
+
+拿不准？先跑 `python3 scripts/validate_skill.py` —— 它会确认这个文件夹是合法的技能，再去找放哪儿。
 
 ### 1. 把技能添加到你的 Agent
 
@@ -265,7 +307,7 @@ HCU 会向已登录的桌面发送真实输入。对不可信或破坏性操作�
 
 修改规则前请先读 [CONTRIBUTING.md](CONTRIBUTING.md)。保持核心精简，用可复现的证据支撑改动，永远不要把留出集的失败说成同一用例的结论。
 
-本项目采用 [MIT 许可证](LICENSE)。HCU 是微软的独立项目，同样是 MIT 许可；上游仓库中改编自 OSWorld-V2 的文件保留其各自的声明。本仓库不分发 HCU 二进制或原生 provider。
+本项目采用 [MIT 许可证](LICENSE)。本仓库中的代码均为本项目原创，未复制或内嵌任何 HCU 源码。HCU 是微软的独立项目，同样是 MIT 许可；上游仓库中改编自 OSWorld-V2 的文件保留其各自的声明。本仓库不分发 HCU 二进制或原生 provider —— `scripts/hcu_setup.py` 在构建时从微软官方仓库克隆。
 
 ## 致谢
 

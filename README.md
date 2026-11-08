@@ -24,6 +24,21 @@ An Agent Skills-compatible decision layer for [Microsoft Hybrid Computer Use (HC
 
 The repository also includes a consent-based bootstrapper that clones and builds the official HCU MCP server and configures MCP-capable agents.
 
+## What this is — and what it is not
+
+**This project is not HCU.** It is a set of instructions that tells an AI agent *how to use* HCU well.
+
+| | This project | Microsoft HCU |
+| --- | --- | --- |
+| What it is | Markdown policy + Python setup helper | The actual MCP server, CLI, and native desktop providers |
+| Written in | Markdown, Python (stdlib only) | Go, Swift, C#, TypeScript |
+| Installed how | `git clone` this repo | Built from source, or via `scripts/hcu_setup.py` |
+
+- This repository contains **no HCU source code and no HCU binary**. `scripts/hcu_setup.py` clones `microsoft/Hybrid-Computer-Use` into a *separate* directory outside this repo and builds it there.
+- The skill cannot do anything without HCU installed. If HCU is unavailable, this skill only tells the agent to stop.
+- Bugs in the actual clicking, screenshotting, or accessibility tree belong to [Microsoft's issue tracker](https://github.com/microsoft/Hybrid-Computer-Use/issues), not this one.
+- "HCU" and "Hybrid Computer Use" refer to the Microsoft project. This repository is an independent, unaffiliated companion.
+
 ## Why this skill exists
 
 A successful click is not a completed task. Most desktop automation fails not because the click missed, but because nobody checked what happened afterward. This skill turns desktop automation into a closed loop:
@@ -46,6 +61,33 @@ Key capabilities:
 - **Multi-agent onboarding** — one portable skill plus client-specific MCP setup adapters.
 
 ## Quick start
+
+> **Read this first.** There is no one-click installer. Getting HCU running means compiling native code, which takes a few minutes and needs Go 1.22+, .NET 8 SDK (Windows), and PowerShell 7+ already on the machine. The steps below do the work for you, but the first build is not instant.
+
+**The fastest path, in three commands:**
+
+```bash
+git clone https://github.com/lumina03c-beep/hcu-desktop-automation.git
+cd hcu-desktop-automation
+python3 scripts/hcu_setup.py doctor     # read-only: tells you what is missing
+```
+
+If `doctor` shows every tool as available, run `python3 scripts/hcu_setup.py install` and approve the plan it prints. If something is missing, install that tool first — the doctor names it.
+
+### Where to put the skill
+
+Agents discover skills in different directories. Copy or symlink the cloned folder into the one that matches your agent:
+
+| Agent | Skill directory | Notes |
+| --- | --- | --- |
+| Claude Code | `~/.claude/skills/` | Personal skills; project skills go in `.claude/skills/` inside the repo |
+| OpenCode | `~/.config/opencode/skills/` | Global; `.opencode/skills/` for a single project |
+| Codex | `~/.codex/skills/` | Restart the CLI after adding |
+| Gemini CLI | `~/.gemini/skills/` | Check your version's docs — this path has changed between releases |
+| Grok Build | `~/.grok/skills/` | Check your version's docs |
+| Other | your agent's docs | The requirement is a directory containing `SKILL.md` at its root |
+
+Not sure? Run `python3 scripts/validate_skill.py` — it confirms the folder is a valid skill before you go hunting for the right place.
 
 ### 1. Add this skill to your agent
 
@@ -265,7 +307,7 @@ See [SECURITY.md](SECURITY.md) and [references/environments.md](references/envir
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) before changing rules. Keep the core small, link changes to reproducible evidence, and never turn a holdout failure into a claim about the same case.
 
-This project is licensed under the [MIT License](LICENSE). HCU is a separate Microsoft project, also MIT-licensed; files adapted from OSWorld-V2 in the upstream repository retain their own notices. This repository does not redistribute the HCU binary or native provider.
+This project is licensed under the [MIT License](LICENSE). All code in this repository is original to this project; no HCU source code is copied or vendored here. HCU is a separate Microsoft project, also MIT-licensed; files adapted from OSWorld-V2 in the upstream repository retain their own notices. This repository does not redistribute the HCU binary or native provider — `scripts/hcu_setup.py` clones the official repository from Microsoft at build time.
 
 ## Acknowledgements
 
