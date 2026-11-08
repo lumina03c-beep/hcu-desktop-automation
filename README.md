@@ -1,14 +1,32 @@
-# HCU Desktop Automation Skill
+<p align="center">
+  <h1 align="center">HCU Desktop Automation</h1>
+</p>
+
+<p align="center">
+  <em>A successful click is not a completed task.</em>
+</p>
+
+<p align="center">
+  <a href="https://github.com/lumina03c-beep/hcu-desktop-automation/actions/workflows/validate.yml"><img src="https://github.com/lumina03c-beep/hcu-desktop-automation/actions/workflows/validate.yml/badge.svg" alt="CI"></a>
+  <img src="https://img.shields.io/badge/license-MIT-111111?style=flat-square" alt="MIT license">
+  <img src="https://img.shields.io/badge/python-3.10%2B-111111?style=flat-square" alt="Python 3.10+">
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-111111?style=flat-square" alt="Platform">
+  <img src="https://img.shields.io/badge/agents-Agent%20Skills-111111?style=flat-square" alt="Agent Skills">
+</p>
+
+<p align="center">
+  <a href="README.md">English</a> &middot; <a href="README.zh-CN.md">简体中文</a>
+</p>
+
+---
 
 An Agent Skills-compatible decision layer for [Microsoft Hybrid Computer Use (HCU)](https://github.com/microsoft/Hybrid-Computer-Use). It helps agents choose among **Programmatic → Semantic AX → Visual GUI**, batch deterministic work, verify real outcomes, recover without blind retries, and stop safely when evidence is insufficient.
 
 The repository also includes a consent-based bootstrapper that clones and builds the official HCU MCP server and configures MCP-capable agents.
 
-中文说明：这是一个跨 Agent 的 HCU 桌面自动化技能。核心 `SKILL.md` 不绑定 OpenCode；安装脚本支持 OpenCode、Codex、Claude Code、Gemini CLI、Grok Build 和通用 stdio MCP。安装或修改配置前必须获得用户确认。
-
 ## Why this skill exists
 
-A successful click is not a completed task. This skill turns desktop automation into a closed loop:
+A successful click is not a completed task. Most desktop automation fails not because the click missed, but because nobody checked what happened afterward. This skill turns desktop automation into a closed loop:
 
 ```text
 Task contract → state ownership → sufficient observation → channel route
@@ -27,33 +45,6 @@ Key capabilities:
 - **Generalization evaluation** — development/regression/holdout separation and false-success measurement.
 - **Multi-agent onboarding** — one portable skill plus client-specific MCP setup adapters.
 
-## Compatibility
-
-### Agent and MCP clients
-
-The core skill follows the [Agent Skills specification](https://agentskills.io/specification). Skill discovery and installation remain client-specific; MCP registration is handled separately by `scripts/hcu_setup.py`.
-
-| Client | MCP setup adapter | Configuration behavior | Live desktop status |
-| --- | --- | --- | --- |
-| Generic stdio MCP | Config output | Prints a client-independent `mcpServers` entry | Requires compatibility gate |
-| Codex | Implemented | Merges only `[mcp_servers.computer_use]` | Verify locally |
-| Claude Code | Implemented | Uses HCU's official schema adapter | Verify locally |
-| Gemini CLI | Implemented | Adds `mcpServers.computer-use`, keeps `trust:false` | Verify locally |
-| Grok Build | Implemented | Merges only `[mcp_servers.computer_use]` | Verify locally |
-| OpenCode | Implemented | Current `mcp.servers` and legacy `mcp` JSON; JSONC guided without comment loss | Verify on your client version |
-
-A generic client is compatible only if it preserves GUI `oneOf` schemas, forwards PNG bytes for normal and error tool results, and keeps one persistent MCP process per desktop session.
-
-### Operating systems
-
-HCU upstream supports:
-
-- **Windows 10/11** — Go 1.22+, .NET 8 SDK, PowerShell 7+, unlocked interactive session.
-- **macOS 14+** — Go 1.22+, Swift 6.2+, macOS SDK, Accessibility and Screen Recording consent.
-- **Linux X11** — Go 1.22+, Python/PyGObject, AT-SPI/GTK dependencies; the official local build targets amd64.
-
-See [references/setup.md](references/setup.md) and the upstream [native platform guide](https://github.com/microsoft/Hybrid-Computer-Use/blob/main/docs/PLATFORMS.md).
-
 ## Quick start
 
 ### 1. Add this skill to your agent
@@ -61,7 +52,7 @@ See [references/setup.md](references/setup.md) and the upstream [native platform
 This repository is a standard [Agent Skills](https://agentskills.io/specification) directory. Any agent that supports that format can consume it without client-specific changes.
 
 ```bash
-git clone <this-repository-url> hcu-desktop-automation
+git clone https://github.com/lumina03c-beep/hcu-desktop-automation.git
 ```
 
 Place or symlink the resulting `hcu-desktop-automation/` directory in your agent's skill-discovery location, then enable/restart skill discovery according to that agent's documentation. The required entry point is `SKILL.md` at the directory root.
@@ -164,12 +155,61 @@ through the `AX` tool, or request a GUI screenshot. **A successful build, config
 
 Client-specific formats, OpenCode JSONC handling, and custom config paths are documented in [references/setup.md](references/setup.md).
 
+## How it works
+
+The skill is a policy layer, not a script library. It routes work by **where the state lives**:
+
+| State | Channel |
+| --- | --- |
+| Files/data with no owning open app | Shell, authorized API/CLI, format-aware library |
+| Open document or live application state | Owning app: AX for semantics, GUI for pixels |
+| Settings | UI via AX while running; config only when safely reloaded or closed |
+| Signed-in web/session state | Existing session endpoint if exposed, else AX/GUI |
+| Canvas, drawing, layout | GUI for pixels; AX for menus/dialogs |
+
+Every action carries a risk class and must be verified at a specific evidence level:
+
+| Risk | Execution rule |
+| --- | --- |
+| R0 read-only | Batch reads narrowly; avoid unnecessary full trees/screenshots |
+| R1 reversible local mutation | Batch deterministic steps; read back and restore test state |
+| R2 high-impact or externally visible | Isolate, preview target/payload, obtain required confirmation, verify L3 |
+
+**L1** proves input delivery, **L2** proves application/UI state, **L3** proves the user outcome or persisted artifact. Accepted input alone never completes a task.
+
+## Compatibility
+
+### Agent and MCP clients
+
+The core skill follows the [Agent Skills specification](https://agentskills.io/specification). Skill discovery and installation remain client-specific; MCP registration is handled separately by `scripts/hcu_setup.py`.
+
+| Client | MCP setup adapter | Configuration behavior | Live desktop status |
+| --- | --- | --- | --- |
+| Generic stdio MCP | Config output | Prints a client-independent `mcpServers` entry | Requires compatibility gate |
+| Codex | Implemented | Merges only `[mcp_servers.computer_use]` | Verify locally |
+| Claude Code | Implemented | Uses HCU's official schema adapter | Verify locally |
+| Gemini CLI | Implemented | Adds `mcpServers.computer-use`, keeps `trust:false` | Verify locally |
+| Grok Build | Implemented | Merges only `[mcp_servers.computer_use]` | Verify locally |
+| OpenCode | Implemented | Current `mcp.servers` and legacy `mcp` JSON; JSONC guided without comment loss | Verify on your client version |
+
+A generic client is compatible only if it preserves GUI `oneOf` schemas, forwards PNG bytes for normal and error tool results, and keeps one persistent MCP process per desktop session.
+
+### Operating systems
+
+HCU upstream supports:
+
+- **Windows 10/11** — Go 1.22+, .NET 8 SDK, PowerShell 7+, unlocked interactive session.
+- **macOS 14+** — Go 1.22+, Swift 6.2+, macOS SDK, Accessibility and Screen Recording consent.
+- **Linux X11** — Go 1.22+, Python/PyGObject, AT-SPI/GTK dependencies; the official local build targets amd64.
+
+See [references/setup.md](references/setup.md) and the upstream [native platform guide](https://github.com/microsoft/Hybrid-Computer-Use/blob/main/docs/PLATFORMS.md).
+
 ## Example tasks
 
-- “Use the existing browser session to find the first result and confirm that playback actually started.”
-- “Find sales below 1000 in the open spreadsheet, mark those rows, save, and verify the saved file.”
-- “Install HCU for two agents, but first show me exactly what will change.”
-- “Recover from `stale_ref` without repeating any text that may already have been entered.”
+- "Use the existing browser session to find the first result and confirm that playback actually started."
+- "Find sales below 1000 in the open spreadsheet, mark those rows, save, and verify the saved file."
+- "Install HCU for two agents, but first show me exactly what will change."
+- "Recover from `stale_ref` without repeating any text that may already have been entered."
 
 Pure file/API/CLI tasks should use ordinary programmatic tools without entering a GUI loop.
 
@@ -211,7 +251,7 @@ CI runs these checks on Ubuntu, Windows, and macOS. It does **not** claim native
 
 ## Evaluation and honest reporting
 
-The 18 original cases are regression coverage, not automatic proof of generalization. Applications named in `references/scenarios.md` must not be reused as untouched holdouts. A generalization claim requires frozen holdout applications/task combinations, repeated A/B/C runs, independent L3 verification, and raw failure records.
+The 18 original cases are regression coverage, not automatic proof of generalization. Applications named in [references/scenarios.md](references/scenarios.md) must not be reused as untouched holdouts. A generalization claim requires frozen holdout applications/task combinations, repeated A/B/C runs, independent L3 verification, and raw failure records.
 
 The example result file is synthetic and exists only to test the summarizer. No benchmark result is implied by this repository's example data. See [references/testing.md](references/testing.md) and [evaluations/README.md](evaluations/README.md).
 

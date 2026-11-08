@@ -28,7 +28,7 @@ Thumbs.db
 
 # Agent-local project state
 .workbuddy/
-
+.codegraph/
 # Editors
 .vscode/
 .idea/
