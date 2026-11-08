@@ -8,6 +8,7 @@ All notable changes to this project are documented here. The format follows Keep
 
 - Agent Skills metadata, portability requirements, and client compatibility gates.
 - Consent-based HCU doctor, pinned source installation, official build/smoke execution, and native doctor checks.
+- Client-independent default install output: build HCU and print a generic stdio MCP entry without writing client configuration.
 - Configuration adapters for OpenCode, Codex, Claude Code, Gemini CLI, Grok Build, and generic stdio MCP clients.
 - Configuration backups, custom config paths, existing-tree reuse, and clean fast-forward updates.
 - Mandatory task contract, observation sufficiency gate, route record, and R0/R1/R2 execution classes.

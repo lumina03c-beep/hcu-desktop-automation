@@ -468,7 +468,9 @@ def command_doctor(args: argparse.Namespace) -> int:
 def command_install(args: argparse.Namespace) -> int:
     system = system_name()
     source = args.source.expanduser().resolve()
-    clients = args.client or []
+    # Without an explicit client, print the client-independent stdio entry.
+    # Generic output writes no configuration; --skip-config suppresses it.
+    clients = args.client or ([] if args.skip_config else ["generic"])
     confirm(args, source, clients)
     if args.install_deps:
         install_system_deps()
@@ -533,7 +535,11 @@ def parser() -> argparse.ArgumentParser:
     doctor.set_defaults(func=command_doctor)
     for name, function in (("install", command_install), ("configure", command_configure)):
         command = sub.add_parser(name, help=f"{name} HCU and selected clients")
-        command.add_argument("--client", action="append", choices=CLIENTS, required=(name == "configure"))
+        command.add_argument(
+            "--client", action="append", choices=CLIENTS,
+            required=(name == "configure"),
+            help="Client to configure; repeat for multiple clients. Defaults to generic config output.",
+        )
         command.add_argument("--config", action="append", default=[], metavar="CLIENT=PATH")
         command.add_argument("--yes", action="store_true", help="Confirm changes after explicit user approval")
         if name == "install":

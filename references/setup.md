@@ -19,10 +19,19 @@ HCU, or the client cannot connect. Do not reinstall when the tools already work.
    Obtain user approval before any mutation. Do not silently use sudo, change OS
    permissions, remove another MCP server, or start a second desktop driver.
 
-3. After approval, install and configure, for example:
+3. After approval, build HCU and print the client-independent stdio entry:
 
    ```bash
-   python3 scripts/hcu_setup.py install --client opencode --yes
+   python3 scripts/hcu_setup.py install --yes
+   ```
+
+   This writes no client configuration. To let the bootstrapper merge a
+   supported client entry after the same approval, repeat `--client`:
+
+   ```bash
+   python3 scripts/hcu_setup.py install \
+     --client codex --client claude-code \
+     --client gemini-cli --client grok-build --yes
    ```
 
    `--yes` records that the preceding user approval covers the printed changes;
@@ -46,8 +55,11 @@ HCU, or the client cannot connect. Do not reinstall when the tools already work.
   smoke test requiring exactly `AX` and `GUI`;
 - runs `computer-use doctor` and distinguishes native desktop warnings from
   protocol/build success;
-- merges only the selected HCU config entry, preserves unrelated settings, and
-  creates a timestamped backup beside every existing config it modifies;
+- prints a client-independent stdio MCP entry by default, without writing
+  client configuration;
+- when explicit client adapters are selected, merges only the selected HCU
+  config entry, preserves unrelated settings, and creates a timestamped backup
+  beside every existing config it modifies;
 - prints a restart/reconnect and live-verification requirement.
 
 An existing source tree is reused, not recloned. `--update` permits only a
@@ -94,22 +106,31 @@ Keep `ComputerUseProvider.app` beside the macOS executable and
 
 ## Client adapters
 
-Repeat `--client` to configure multiple agents in one approved run:
+The common deployment path is client-independent:
+
+```text
+/absolute/path/to/computer-use mcp
+```
+
+Most MCP-capable agents can register that command as a local stdio server. The
+bootstrapper's generic output prints the usual `mcpServers` shape; adapt the
+surrounding format to the client. Repeat `--client` to let an approved run merge
+entries for supported clients:
 
 ```bash
 python3 scripts/hcu_setup.py install \
-  --client opencode --client codex --client claude-code \
+  --client codex --client claude-code \
   --client gemini-cli --client grok-build --yes
 ```
 
 | Client | Automatic config target | Adapter details |
 | --- | --- | --- |
-| OpenCode | `${XDG_CONFIG_HOME:-~/.config}/opencode/opencode.json` or existing `opencode.jsonc` | Detects legacy `mcp.<name>` and current `mcp.servers.<name>`; current config sets `codemode:false` for direct AX/GUI tools |
+| Generic MCP | Printed only | stdio command `<absolute-path-to-computer-use> mcp` |
 | Codex | `${CODEX_HOME:-~/.codex}/config.toml` | Replaces only `[mcp_servers.computer_use]`; 60 s startup and 180 s tool timeout |
 | Claude Code | `~/.claude.json` | Uses the official `claude_mcp_schema_adapter.py`; do not connect the raw binary directly |
 | Gemini CLI | `${GEMINI_CLI_HOME:-~}/.gemini/settings.json` | Adds `mcpServers.computer-use`; leaves `trust:false` so confirmations are not bypassed |
 | Grok Build | `${GROK_HOME:-~/.grok}/config.toml` | Replaces only `[mcp_servers.computer_use]` |
-| Generic MCP | Printed only | stdio command `<absolute-path-to-computer-use> mcp` |
+| OpenCode | `${XDG_CONFIG_HOME:-~/.config}/opencode/opencode.json` or existing `opencode.jsonc` | Detects legacy `mcp.<name>` and current `mcp.servers.<name>`; current config sets `codemode:false` for direct AX/GUI tools |
 
 Use `--config CLIENT=/absolute/path` to override a selected client's default.
 `configure` updates clients for an existing build without rebuilding;

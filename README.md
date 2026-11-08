@@ -2,7 +2,7 @@
 
 An Agent Skills-compatible decision layer for [Microsoft Hybrid Computer Use (HCU)](https://github.com/microsoft/Hybrid-Computer-Use). It helps agents choose among **Programmatic → Semantic AX → Visual GUI**, batch deterministic work, verify real outcomes, recover without blind retries, and stop safely when evidence is insufficient.
 
-The repository also includes a consent-based bootstrapper that clones and builds the official HCU MCP server and configures popular MCP clients.
+The repository also includes a consent-based bootstrapper that clones and builds the official HCU MCP server and configures MCP-capable agents.
 
 中文说明：这是一个跨 Agent 的 HCU 桌面自动化技能。核心 `SKILL.md` 不绑定 OpenCode；安装脚本支持 OpenCode、Codex、Claude Code、Gemini CLI、Grok Build 和通用 stdio MCP。安装或修改配置前必须获得用户确认。
 
@@ -35,12 +35,12 @@ The core skill follows the [Agent Skills specification](https://agentskills.io/s
 
 | Client | MCP setup adapter | Configuration behavior | Live desktop status |
 | --- | --- | --- | --- |
-| OpenCode | Implemented | Current `mcp.servers` and legacy `mcp` JSON; JSONC guided without comment loss | Verify on your client version |
+| Generic stdio MCP | Config output | Prints a client-independent `mcpServers` entry | Requires compatibility gate |
 | Codex | Implemented | Merges only `[mcp_servers.computer_use]` | Verify locally |
 | Claude Code | Implemented | Uses HCU's official schema adapter | Verify locally |
 | Gemini CLI | Implemented | Adds `mcpServers.computer-use`, keeps `trust:false` | Verify locally |
 | Grok Build | Implemented | Merges only `[mcp_servers.computer_use]` | Verify locally |
-| Generic stdio MCP | Config output | Prints an `mcpServers` entry | Requires compatibility gate |
+| OpenCode | Implemented | Current `mcp.servers` and legacy `mcp` JSON; JSONC guided without comment loss | Verify on your client version |
 
 A generic client is compatible only if it preserves GUI `oneOf` schemas, forwards PNG bytes for normal and error tool results, and keeps one persistent MCP process per desktop session.
 
@@ -56,15 +56,17 @@ See [references/setup.md](references/setup.md) and the upstream [native platform
 
 ## Quick start
 
-### 1. Install this skill
+### 1. Add this skill to your agent
 
-Clone or copy this directory into your agent's skill-discovery location. For example, OpenCode commonly uses:
+This repository is a standard [Agent Skills](https://agentskills.io/specification) directory. Any agent that supports that format can consume it without client-specific changes.
 
-```text
-~/.config/opencode/skills/hcu-desktop-automation/
+```bash
+git clone <this-repository-url> hcu-desktop-automation
 ```
 
-Other agents should use their documented Agent Skills directory or repository installation mechanism. The required entry point is `SKILL.md`.
+Place or symlink the resulting `hcu-desktop-automation/` directory in your agent's skill-discovery location, then enable/restart skill discovery according to that agent's documentation. The required entry point is `SKILL.md` at the directory root.
+
+The skill itself contains no client-specific configuration. MCP registration is a separate step.
 
 ### 2. Check HCU without changing anything
 
@@ -74,21 +76,17 @@ From this repository root:
 python3 scripts/hcu_setup.py doctor
 ```
 
-On Windows, use `python` when `python3` is not available. The setup tooling requires Python 3.10+ and only the standard library. The doctor reports dependencies, source/build paths, and native desktop requirements; it does not install or write configuration.
+On Windows, use `python` when `python3` is not available. The setup tooling requires Python 3.10+ and only the standard library. The doctor reports the operating system, native build/runtime dependencies, HCU source/build paths, and desktop requirements; it does not install anything or write configuration.
 
-### 3. Install HCU and configure your agent
+### 3. Build HCU
 
-After reviewing the doctor output and approving the changes:
+After reviewing the doctor output and approving the download/build:
 
 ```bash
-# OpenCode
-python3 scripts/hcu_setup.py install --client opencode --yes
-
-# Or configure several agents from the same HCU build
-python3 scripts/hcu_setup.py install \
-  --client opencode --client codex --client claude-code \
-  --client gemini-cli --client grok-build --yes
+python3 scripts/hcu_setup.py install --yes
 ```
+
+With no `--client` argument, the installer builds HCU and prints a generic stdio MCP configuration; it does not write any client configuration.
 
 The installer:
 
@@ -96,13 +94,65 @@ The installer:
 2. builds with the official platform build path;
 3. runs the official MCP smoke test requiring exactly `AX` and `GUI`;
 4. runs `computer-use doctor`;
-5. backs up and merges only the selected HCU configuration entries.
+5. prints the generic client configuration.
 
 Existing source trees are reused. `--update` allows only a fast-forward update of a clean tree. Use `--ref main` only if you intentionally want the current development branch. On Linux, the official local build path targets amd64; other architectures require an upstream build change rather than a skill workaround.
 
+The equivalent official manual build commands, run from the HCU source root, are:
+
+```bash
+make build-local   # Linux binary in artifacts/computer-use (Go 1.22+)
+make smoke         # check that stdio MCP exposes AX and GUI
+make build-macos   # macOS bundle in artifacts/macos/ (Swift 6.2+)
+make build-windows # Windows bundle in artifacts/windows/ (.NET 8, PowerShell 7)
+```
+
+Run the platform's `computer-use doctor` as the signed-in desktop user after building.
+
+### 4. Connect any MCP-capable agent
+
+HCU is a stdio MCP server. The client-independent launch command is:
+
+```text
+/absolute/path/to/computer-use mcp
+```
+
+A typical generic MCP configuration is:
+
+```json
+{
+  "mcpServers": {
+    "computer-use": {
+      "type": "stdio",
+      "command": "/absolute/path/to/artifacts/computer-use",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+Use the platform-specific binary path: `artifacts/computer-use` on Linux, `artifacts/macos/computer-use` on macOS, or `artifacts/windows/computer-use.exe` on Windows. Adapt the surrounding configuration shape to your agent's MCP configuration format.
+
+For clients with a built-in adapter, the same approved install can write only the HCU entry:
+
+```bash
+python3 scripts/hcu_setup.py install \
+  --client codex --client claude-code \
+  --client gemini-cli --client grok-build --yes
+```
+
+OpenCode is also supported through the same mechanism. For an existing build:
+
+```bash
+python3 scripts/hcu_setup.py configure --client codex --yes
+python3 scripts/hcu_setup.py print-config --client generic
+```
+
+HCU also ships `python3 -m hcu.render_agent_config` for complete Codex, Claude Code, Gemini CLI, and Grok Build profiles. Those profiles include model, gateway, and system-prompt choices, so use them only when you need a full upstream evaluation profile rather than ordinary MCP registration.
+
 > **Safety:** `--yes` means you have reviewed and approved the displayed installation/configuration changes. It does not bypass OS permissions, desktop confirmation, or high-impact action checks. Debian/Ubuntu system packages are installed only with the separate `--install-deps` option, which uses `sudo apt-get`.
 
-### 4. Restart and verify
+### 5. Restart and verify
 
 Restart or reconnect the agent, then verify:
 
@@ -110,23 +160,15 @@ Restart or reconnect the agent, then verify:
 {"mode": "apps"}
 ```
 
-through the `AX` tool, or request a GUI screenshot. **A successful build or config write is not proof of desktop readiness.**
+through the `AX` tool, or request a GUI screenshot. **A successful build, config write, or MCP handshake is not proof of desktop readiness.**
 
-For existing builds, JSONC setups, custom paths, and generic MCP clients:
-
-```bash
-python3 scripts/hcu_setup.py configure --client codex --yes
-python3 scripts/hcu_setup.py configure --client opencode --config opencode=/custom/opencode.json --yes
-python3 scripts/hcu_setup.py print-config --client generic
-```
-
-OpenCode JSONC is never rewritten automatically because that would discard comments. Follow [references/setup.md](references/setup.md) for the official CLI plus guided merge.
+Client-specific formats, OpenCode JSONC handling, and custom config paths are documented in [references/setup.md](references/setup.md).
 
 ## Example tasks
 
 - “Use the existing browser session to find the first result and confirm that playback actually started.”
 - “Find sales below 1000 in the open spreadsheet, mark those rows, save, and verify the saved file.”
-- “Install HCU for OpenCode and Codex, but first show me what will change.”
+- “Install HCU for two agents, but first show me exactly what will change.”
 - “Recover from `stale_ref` without repeating any text that may already have been entered.”
 
 Pure file/API/CLI tasks should use ordinary programmatic tools without entering a GUI loop.

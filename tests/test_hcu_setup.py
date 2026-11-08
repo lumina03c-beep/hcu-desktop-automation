@@ -1,4 +1,6 @@
+import contextlib
 import importlib.util
+import io
 import json
 import tempfile
 import unittest
@@ -25,6 +27,13 @@ class SetupConfigTests(unittest.TestCase):
         self.assertEqual(hcu.binary_path(self.source, "linux"), self.source / "artifacts/computer-use")
         self.assertEqual(hcu.binary_path(self.source, "darwin"), self.source / "artifacts/macos/computer-use")
         self.assertEqual(hcu.binary_path(self.source, "windows"), self.source / "artifacts/windows/computer-use.exe")
+
+    def test_install_client_is_optional_but_configure_requires_it(self):
+        install_args = hcu.parser().parse_args(["install"])
+        self.assertIsNone(install_args.client)
+        with contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                hcu.parser().parse_args(["configure"])
 
     def test_opencode_v2_preserves_unrelated_settings(self):
         path = self.root / "opencode.json"
