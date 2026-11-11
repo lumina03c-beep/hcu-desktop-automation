@@ -20,7 +20,7 @@
 
 ---
 
-这是 [Microsoft Hybrid Computer Use (HCU)](https://github.com/microsoft/Hybrid-Computer-Use) 的 Agent Skills 兼容决策层。它帮助 Agent 在 **程序调用 → 语义 AX → 视觉 GUI** 三条通道间做选择，批量执行确定性操作，验证真实结果，避免盲目重试，并在证据不足时安全停止。
+这是面向动态 UI RPA 的 Agent Skills 决策层，覆盖 **浏览器（ego-browser）** 与 **桌面（Microsoft HCU）** 两个执行引擎。它帮助 Agent 维护唯一的任务 Workspace，按阶段选择引擎，批量执行确定性操作，验证真实结果，避免盲目重试，并在证据不足时安全停止。
 
 仓库还包含一个基于用户确认的引导脚本，用于克隆并构建官方 HCU MCP 服务器，并配置支持 MCP 的 Agent。
 
@@ -35,7 +35,7 @@
 | 怎么安装 | `git clone` 本仓库 | 从源码构建，或通过 `scripts/hcu_setup.py` |
 
 - 本仓库**不含任何 HCU 源码，也不含 HCU 二进制**。`scripts/hcu_setup.py` 会把 `microsoft/Hybrid-Computer-Use` 克隆到本仓库**之外**的独立目录，在那里构建。
-- 没有装 HCU，这个技能什么也做不了。HCU 不可用时，技能只会告诉 Agent 停下。
+- 浏览器任务需要单独安装的 ego-browser 技能；桌面任务需要 HCU。纯浏览器任务不依赖 HCU，纯桌面任务也不依赖 ego-browser。
 - 真正的点击、截图、无障碍树出问题，请去 [微软的 issue 区](https://github.com/microsoft/Hybrid-Computer-Use/issues)，不是这里。
 - "HCU" 和 "Hybrid Computer Use" 指微软的项目。本仓库是独立的第三方配套项目，与微软无隶属关系。
 
@@ -52,7 +52,9 @@
 核心能力：
 
 - **任务契约** — 动手前明确目标、目标对象、约束、前置条件、风险和成功判据。
-- **基于状态的路由** — 根据"真相存在哪里"选择通道，而不是记应用特定的操作配方。
+- **动态 UI 路由** — Web 优先浏览器，原生 UI 走桌面，只有真正跨双引擎才用 Hybrid。
+- **任务 Workspace** — 一个用户任务对应一份权威 JSON，记录已验证步骤、交接、副作用和产物。
+- **基于状态的路由** — 根据“真相存在哪里”选择通道，而不是记应用特定的操作配方。
 - **风险分级执行** — R0 只读、R1 可逆变更、R2 高影响/外部可见变更。
 - **证据等级** — L1 输入送达、L2 应用状态、L3 已验证的用户结果或持久化产物。
 - **实时状态安全** — 会话级引用、GUI 帧租约、Windows 输入保护、条件等待。
@@ -199,7 +201,7 @@ HCU 还提供 `python3 -m hcu.render_agent_config`，用于生成完整的 Codex
 
 ## 工作原理
 
-这个技能是策略层，不是脚本库。它按**状态存在哪里**来路由工作：
+这个技能是策略层，不是脚本库。它先把每个任务阶段路由到浏览器或桌面，再在桌面内部按**状态存在哪里**选择通道：
 
 | 状态 | 通道 |
 | --- | --- |
@@ -261,20 +263,35 @@ HCU 上游支持：
 hcu-desktop-automation/
 ├── SKILL.md                    # 可移植的核心策略与渐进式披露地图
 ├── references/
+│   ├── product-scope.md        # 动态 UI RPA 边界与引擎归属
+│   ├── task-contract.md        # 引擎无关的共享任务契约
+│   ├── workspace-policy.md     # 一个用户任务对应一份权威 JSON
+│   ├── routing.md              # Browser/Desktop/Hybrid 与 HCU 通道路由
+│   ├── browser-workflow.md     # ego-browser 接入与安全规则
+│   ├── desktop-workflow.md     # HCU 接入与安全规则
+│   ├── hybrid-workflow.md      # 跨引擎交接与连续性
+│   ├── execution-policy.md     # 批量 / 自适应 / 关键三种执行模式
 │   ├── setup.md                # 基于确认的 HCU 与多 Agent 接入
-│   ├── routing.md              # 状态归属与通道切换
 │   ├── contract.md             # 观察、风险、操作、等待、证据
 │   ├── recovery.md             # 变更记录、错误、安全恢复
 │   ├── platforms.md            # Windows/macOS/Linux 行为差异
 │   ├── environments.md         # 专用/共享桌面与凭据
 │   ├── scenarios.md            # 兜底范式，不是留出集证据
 │   └── testing.md              # 回归与留出集评测协议
+├── schemas/
+│   └── workspace.schema.json   # Draft 2020-12 任务 Workspace Schema
+├── examples/                  # Workspace 生命周期示例
 ├── scripts/
 │   ├── hcu_setup.py            # HCU doctor/构建/配置引导脚本
 │   ├── validate_skill.py       # 离线项目校验
 │   └── summarize_results.py    # 评测聚合与假成功率指标
-├── evaluations/                # 结果 schema、合成示例、评测指南
-├── tests/                      # 标准库单元测试
+├── evaluations/
+│   ├── result.schema.json       # V1 HCU 评测结果 schema
+│   ├── example-results.json     # 合成 V1 评测示例
+│   └── v2/
+│       ├── result.schema.json   # 动态 UI RPA V2 评测 schema
+│       └── example-results.json # 合成 V2 浏览器/桌面/混合示例
+├── tests/                      # 单元测试与 Workspace 生命周期测试
 ├── docs/                       # 产品与架构文档
 └── .github/workflows/          # CI 校验
 ```
@@ -284,12 +301,13 @@ hcu-desktop-automation/
 无需安装 HCU 即可运行离线检查：
 
 ```bash
+python -m pip install -r requirements-dev.txt
 python3 scripts/validate_skill.py
 python3 -m unittest discover -s tests -v
 python3 scripts/summarize_results.py evaluations/example-results.json
 ```
 
-CI 在 Ubuntu、Windows 和 macOS 上运行这些检查。它并**不**声称覆盖原生桌面输入；真实的 HCU 验证需要交互式桌面和平台 provider。
+开发依赖用于对 Workspace Schema 和示例做完整的 Draft 2020-12 校验。CI 在 Ubuntu、Windows 和 macOS 上运行这些检查。它并**不**声称覆盖原生桌面输入或真实浏览器会话；真正的 HCU 与 ego-browser 验证需要交互式桌面和已安装的执行引擎。
 
 ## 评测与诚实报告
 

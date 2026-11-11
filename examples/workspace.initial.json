@@ -1,0 +1,84 @@
+{
+  "schema_version": "1.0.0",
+  "workspace_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "revision": 1,
+  "timestamps": {
+    "created_at": "2026-11-10T08:00:00Z",
+    "updated_at": "2026-11-10T08:00:00Z"
+  },
+  "task": {
+    "goal": "Create the Q4 customer record, process its attachment, and upload the result to the web portal.",
+    "constraints": [
+      "Use the existing signed-in browser session",
+      "Do not expose credentials or 2FA codes",
+      "Preserve unrelated customer data"
+    ],
+    "success_criteria": [
+      "The customer record is visible in the portal",
+      "The processed attachment is uploaded",
+      "The upload is independently verified"
+    ],
+    "risk_level": "R2"
+  },
+  "lifecycle": {
+    "status": "created",
+    "current_phase": "task_intake",
+    "started_at": null,
+    "completed_at": null,
+    "stop_reason": null
+  },
+  "routing": {
+    "mode": "hybrid",
+    "planned_stages": [
+      {
+        "stage_id": "stage-001",
+        "description": "Create the customer record in the browser portal",
+        "engine": "browser",
+        "status": "pending",
+        "success_condition": "The new customer record is visible in the portal",
+        "switch_condition": "A native desktop dialog is required"
+      },
+      {
+        "stage_id": "stage-002",
+        "description": "Process the attachment in the native desktop application",
+        "engine": "desktop",
+        "status": "pending",
+        "success_condition": "The processed file is saved and parses correctly",
+        "switch_condition": "The browser can complete the operation without a native dialog"
+      },
+      {
+        "stage_id": "stage-003",
+        "description": "Upload the processed attachment and verify the result",
+        "engine": "browser",
+        "status": "pending",
+        "success_condition": "The portal shows the uploaded attachment",
+        "switch_condition": null
+      }
+    ],
+    "active_stage_id": null,
+    "active_engine": null,
+    "last_handoff_id": null
+  },
+  "steps": [],
+  "execution": {
+    "last_verified_state": null,
+    "next_action": "Create the customer record",
+    "blockers": []
+  },
+  "engine_context": {
+    "browser": {
+      "status": "not_started",
+      "space_id": null
+    },
+    "desktop": {
+      "status": "not_started"
+    }
+  },
+  "handoffs": [],
+  "mutations": [],
+  "artifacts": [],
+  "result": {
+    "status": "in_progress",
+    "verification_summary": null
+  }
+}

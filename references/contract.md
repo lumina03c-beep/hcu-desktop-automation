@@ -1,5 +1,11 @@
 # HCU contract essentials
 
+This file is the **HCU-specific execution contract**. The shared,
+engine-neutral task contract is in `references/task-contract.md`, and the
+authoritative task state is defined by `references/workspace-policy.md` and
+`schemas/workspace.schema.json`. Do not apply HCU-specific limits, refs, or
+batching rules to ego-browser, and do not weaken them to unify architecture.
+
 ## Identity and refs
 
 - `aN` application -> `wN` top-level window -> `rN` element.

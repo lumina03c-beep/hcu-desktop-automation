@@ -20,7 +20,7 @@
 
 ---
 
-An Agent Skills-compatible decision layer for [Microsoft Hybrid Computer Use (HCU)](https://github.com/microsoft/Hybrid-Computer-Use). It helps agents choose among **Programmatic → Semantic AX → Visual GUI**, batch deterministic work, verify real outcomes, recover without blind retries, and stop safely when evidence is insufficient.
+An Agent Skills-compatible decision layer for dynamic UI RPA across **Browser (ego-browser)** and **Desktop (Microsoft HCU)**. It helps agents keep one authoritative Task Workspace, route each stage to the right engine, batch deterministic work, verify real outcomes, recover without blind retries, and stop safely when evidence is insufficient.
 
 The repository also includes a consent-based bootstrapper that clones and builds the official HCU MCP server and configures MCP-capable agents.
 
@@ -35,7 +35,7 @@ The repository also includes a consent-based bootstrapper that clones and builds
 | Installed how | `git clone` this repo | Built from source, or via `scripts/hcu_setup.py` |
 
 - This repository contains **no HCU source code and no HCU binary**. `scripts/hcu_setup.py` clones `microsoft/Hybrid-Computer-Use` into a *separate* directory outside this repo and builds it there.
-- The skill cannot do anything without HCU installed. If HCU is unavailable, this skill only tells the agent to stop.
+- Browser tasks require the separately installed ego-browser skill. Desktop tasks require HCU. Browser-only tasks do not require HCU, and Desktop-only tasks do not require ego-browser.
 - Bugs in the actual clicking, screenshotting, or accessibility tree belong to [Microsoft's issue tracker](https://github.com/microsoft/Hybrid-Computer-Use/issues), not this one.
 - "HCU" and "Hybrid Computer Use" refer to the Microsoft project. This repository is an independent, unaffiliated companion.
 
@@ -52,6 +52,8 @@ Task contract → state ownership → sufficient observation → channel route
 Key capabilities:
 
 - **Task contract** — goal, target, constraints, preconditions, risk, and success oracle before acting.
+- **Dynamic UI routing** — Browser-first for web work, Desktop for native UI, Hybrid only when a task truly crosses both engines.
+- **Task Workspace** — one authoritative JSON per user task, with verified steps, handoffs, mutations, and artifacts.
 - **State-based routing** — choose the channel by where truth lives, not by application-specific recipes.
 - **Risk-aware execution** — R0 read-only, R1 reversible mutation, R2 high-impact/external mutation.
 - **Evidence levels** — L1 input delivery, L2 application state, L3 verified user outcome or persisted artifact.
@@ -199,7 +201,7 @@ Client-specific formats, OpenCode JSONC handling, and custom config paths are do
 
 ## How it works
 
-The skill is a policy layer, not a script library. It routes work by **where the state lives**:
+The skill is a policy layer, not a script library. It routes each stage to Browser or Desktop, then routes inside Desktop by **where the state lives**:
 
 | State | Channel |
 | --- | --- |
@@ -261,20 +263,35 @@ Pure file/API/CLI tasks should use ordinary programmatic tools without entering 
 hcu-desktop-automation/
 ├── SKILL.md                    # Portable core policy and progressive-disclosure map
 ├── references/
+│   ├── product-scope.md        # Dynamic UI RPA boundary and engine ownership
+│   ├── task-contract.md        # Shared engine-neutral task contract
+│   ├── workspace-policy.md     # One authoritative JSON per user task
+│   ├── routing.md              # Browser/Desktop/Hybrid and HCU channel routing
+│   ├── browser-workflow.md      # ego-browser integration and safety rules
+│   ├── desktop-workflow.md     # HCU integration and safety rules
+│   ├── hybrid-workflow.md      # Cross-engine handoff and continuity
+│   ├── execution-policy.md     # Batch / Adaptive / Critical modes
 │   ├── setup.md                # Consent-based HCU and multi-agent onboarding
-│   ├── routing.md              # State ownership and channel switching
-│   ├── contract.md             # Observation, risk, actions, waits, evidence
+│   ├── contract.md             # HCU observation, risk, actions, waits, evidence
 │   ├── recovery.md             # Mutation ledger, errors, safe recovery
 │   ├── platforms.md            # Windows/macOS/Linux behavior
 │   ├── environments.md         # Dedicated/shared desktop and credentials
 │   ├── scenarios.md            # Fallback archetypes, not holdout evidence
 │   └── testing.md              # Regression and holdout evaluation protocol
+├── schemas/
+│   └── workspace.schema.json   # Draft 2020-12 Task Workspace schema
+├── examples/                  # Workspace lifecycle examples
 ├── scripts/
 │   ├── hcu_setup.py            # HCU doctor/build/configure bootstrapper
 │   ├── validate_skill.py       # Offline project validation
 │   └── summarize_results.py    # Evaluation aggregation and false-success metrics
-├── evaluations/                # Result schema, synthetic example, evaluation guide
-├── tests/                      # Standard-library unit tests
+├── evaluations/
+│   ├── result.schema.json       # V1 HCU evaluation result schema
+│   ├── example-results.json     # Synthetic V1 evaluation example
+│   └── v2/
+│       ├── result.schema.json   # Dynamic UI RPA V2 evaluation schema
+│       └── example-results.json # Synthetic V2 Browser/Desktop/Hybrid example
+├── tests/                      # Unit and Workspace lifecycle tests
 ├── docs/                       # Product and architecture documentation
 └── .github/workflows/          # CI validation
 ```
@@ -284,12 +301,13 @@ hcu-desktop-automation/
 Run offline checks without installing HCU:
 
 ```bash
+python -m pip install -r requirements-dev.txt
 python3 scripts/validate_skill.py
 python3 -m unittest discover -s tests -v
 python3 scripts/summarize_results.py evaluations/example-results.json
 ```
 
-CI runs these checks on Ubuntu, Windows, and macOS. It does **not** claim native desktop-input coverage; real HCU verification requires an interactive desktop and the platform provider.
+The development dependency provides full Draft 2020-12 validation for the Workspace schema and examples. CI runs these checks on Ubuntu, Windows, and macOS. It does **not** claim native desktop-input or live browser coverage; real HCU and ego-browser verification require an interactive desktop and the installed engines.
 
 ## Evaluation and honest reporting
 

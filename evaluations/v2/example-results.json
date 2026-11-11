@@ -1,0 +1,87 @@
+[
+  {
+    "schema_version": "2.0.0",
+    "run_id": "v2-synthetic-a-001",
+    "case_id": "hybrid-customer-upload",
+    "split": "development",
+    "condition": "A",
+    "synthetic": true,
+    "started_at": "2026-11-10T09:00:00Z",
+    "platform": "windows",
+    "client": "synthetic-client",
+    "model": "synthetic-model",
+    "skill_version": "5.0.0",
+    "engine_profile": "hybrid",
+    "task_success": false,
+    "agent_claimed_success": true,
+    "independent_verifier": "synthetic-independent-verifier",
+    "evidence_level": "L1",
+    "metrics": {
+      "model_calls": 18,
+      "browser_calls": 22,
+      "desktop_calls": 9,
+      "auxiliary_calls": 3,
+      "browser_snapshots": 11,
+      "browser_screenshots": 2,
+      "desktop_ax_calls": 7,
+      "desktop_gui_calls": 2,
+      "input_tokens": 48000,
+      "output_tokens": 6200,
+      "wall_time_ms": 190000,
+      "handoff_latency_ms": 9000,
+      "duplicate_mutations": 1
+    },
+    "recovery": {
+      "eligible": 2,
+      "recovered": 0,
+      "safe_stopped": 0,
+      "failed": 2
+    },
+    "error_codes": [
+      "effect_unknown",
+      "duplicate_mutation"
+    ],
+    "notes": "Synthetic baseline showing a false success and a duplicate mutation."
+  },
+  {
+    "schema_version": "2.0.0",
+    "run_id": "v2-synthetic-b-001",
+    "case_id": "hybrid-customer-upload",
+    "split": "development",
+    "condition": "B",
+    "synthetic": true,
+    "started_at": "2026-11-10T09:10:00Z",
+    "platform": "windows",
+    "client": "synthetic-client",
+    "model": "synthetic-model",
+    "skill_version": "5.0.0",
+    "engine_profile": "hybrid",
+    "task_success": true,
+    "agent_claimed_success": true,
+    "independent_verifier": "synthetic-independent-verifier",
+    "evidence_level": "L3",
+    "metrics": {
+      "model_calls": 11,
+      "browser_calls": 13,
+      "desktop_calls": 7,
+      "auxiliary_calls": 2,
+      "browser_snapshots": 6,
+      "browser_screenshots": 1,
+      "desktop_ax_calls": 5,
+      "desktop_gui_calls": 1,
+      "input_tokens": 32000,
+      "output_tokens": 4100,
+      "wall_time_ms": 130000,
+      "handoff_latency_ms": 5000,
+      "duplicate_mutations": 0
+    },
+    "recovery": {
+      "eligible": 1,
+      "recovered": 1,
+      "safe_stopped": 0,
+      "failed": 0
+    },
+    "error_codes": [],
+    "notes": "Synthetic candidate run with verified completion and no duplicate mutation."
+  }
+]

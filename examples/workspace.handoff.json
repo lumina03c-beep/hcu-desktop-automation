@@ -1,0 +1,147 @@
+{
+  "schema_version": "1.0.0",
+  "workspace_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "revision": 7,
+  "timestamps": {
+    "created_at": "2026-11-10T08:00:00Z",
+    "updated_at": "2026-11-10T08:24:00Z"
+  },
+  "task": {
+    "goal": "Create the Q4 customer record, process its attachment, and upload the result to the web portal.",
+    "constraints": [
+      "Use the existing signed-in browser session",
+      "Do not expose credentials or 2FA codes",
+      "Preserve unrelated customer data"
+    ],
+    "success_criteria": [
+      "The customer record is visible in the portal",
+      "The processed attachment is uploaded",
+      "The upload is independently verified"
+    ],
+    "risk_level": "R2"
+  },
+  "lifecycle": {
+    "status": "running",
+    "current_phase": "engine_handoff",
+    "started_at": "2026-11-10T08:02:00Z",
+    "completed_at": null,
+    "stop_reason": null
+  },
+  "routing": {
+    "mode": "hybrid",
+    "planned_stages": [
+      {
+        "stage_id": "stage-001",
+        "description": "Create the customer record in the browser portal",
+        "engine": "browser",
+        "status": "completed",
+        "success_condition": "The new customer record is visible in the portal",
+        "switch_condition": "A native desktop dialog is required"
+      },
+      {
+        "stage_id": "stage-002",
+        "description": "Process the attachment in the native desktop application",
+        "engine": "desktop",
+        "status": "in_progress",
+        "success_condition": "The processed file is saved and parses correctly",
+        "switch_condition": "The browser can complete the operation without a native dialog"
+      },
+      {
+        "stage_id": "stage-003",
+        "description": "Upload the processed attachment and verify the result",
+        "engine": "browser",
+        "status": "pending",
+        "success_condition": "The portal shows the uploaded attachment",
+        "switch_condition": null
+      }
+    ],
+    "active_stage_id": "stage-002",
+    "active_engine": "desktop",
+    "last_handoff_id": "handoff-001"
+  },
+  "steps": [
+    {
+      "step_id": "step-001",
+      "stage_id": "stage-001",
+      "description": "Create the customer record in the browser portal",
+      "engine": "browser",
+      "status": "completed",
+      "verification": {
+        "status": "verified",
+        "evidence_level": "L3",
+        "summary": "The portal customer list independently shows the new record",
+        "artifact_paths": []
+      }
+    },
+    {
+      "step_id": "step-002",
+      "stage_id": "stage-002",
+      "description": "Process the attachment in the native desktop application",
+      "engine": "desktop",
+      "status": "pending",
+      "verification": {
+        "status": "not_verified",
+        "evidence_level": "L1",
+        "summary": null,
+        "artifact_paths": []
+      }
+    }
+  ],
+  "execution": {
+    "last_verified_state": "Customer record created and visible in the portal",
+    "next_action": "Process the attachment in the native desktop application",
+    "blockers": []
+  },
+  "engine_context": {
+    "browser": {
+      "status": "active",
+      "space_id": "7"
+    },
+    "desktop": {
+      "status": "ready"
+    }
+  },
+  "handoffs": [
+    {
+      "handoff_id": "handoff-001",
+      "from_engine": "browser",
+      "to_engine": "desktop",
+      "reason": "Attachment processing requires the native desktop application",
+      "last_verified_state": "Customer record created and visible in the portal",
+      "pending_action": "Process the attachment in the native desktop application",
+      "status": "prepared",
+      "created_at": "2026-11-10T08:23:00Z",
+      "completed_at": null
+    }
+  ],
+  "mutations": [
+    {
+      "mutation_id": "mutation-001",
+      "step_id": "step-001",
+      "target": "Q4 customer record",
+      "operation": "Create customer",
+      "risk_level": "R2",
+      "effect_state": "confirmed",
+      "verification": {
+        "status": "verified",
+        "evidence_summary": "Portal customer list independently shows the new record"
+      },
+      "created_at": "2026-11-10T08:10:00Z",
+      "updated_at": "2026-11-10T08:22:00Z"
+    }
+  ],
+  "artifacts": [
+    {
+      "artifact_id": "artifact-001",
+      "type": "file",
+      "relative_path": "artifacts/files/source-attachment.pdf",
+      "description": "Source attachment downloaded by the browser stage",
+      "created_by_engine": "browser",
+      "created_at": "2026-11-10T08:20:00Z"
+    }
+  ],
+  "result": {
+    "status": "in_progress",
+    "verification_summary": null
+  }
+}

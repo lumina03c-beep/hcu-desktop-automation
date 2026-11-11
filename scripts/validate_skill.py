@@ -15,6 +15,14 @@ MAX_SKILL_LINES = 120
 REQUIRED_REFERENCES = {
     "setup.md", "routing.md", "contract.md", "recovery.md",
     "platforms.md", "environments.md", "scenarios.md", "testing.md",
+    "product-scope.md", "task-contract.md", "workspace-policy.md",
+    "browser-workflow.md", "desktop-workflow.md", "hybrid-workflow.md",
+    "execution-policy.md",
+}
+REQUIRED_WORKSPACE_EXAMPLES = {
+    "workspace.initial.json", "workspace.running.json",
+    "workspace.handoff.json", "workspace.blocked.json",
+    "workspace.completed.json",
 }
 
 
@@ -66,14 +74,31 @@ def validate_resources(errors: list[str]) -> None:
     missing = sorted(REQUIRED_REFERENCES - present)
     if missing:
         errors.append(f"Missing references: {', '.join(missing)}")
+    schema_path = ROOT / "schemas" / "workspace.schema.json"
+    if not schema_path.is_file():
+        errors.append("Missing workspace schema: schemas/workspace.schema.json")
+    evaluation_v2_schema = ROOT / "evaluations" / "v2" / "result.schema.json"
+    if not evaluation_v2_schema.is_file():
+        errors.append("Missing V2 evaluation schema: evaluations/v2/result.schema.json")
+    evaluation_v2_example = ROOT / "evaluations" / "v2" / "example-results.json"
+    if not evaluation_v2_example.is_file():
+        errors.append("Missing V2 evaluation example: evaluations/v2/example-results.json")
+    examples_dir = ROOT / "examples"
+    present_examples = {path.name for path in examples_dir.glob("*.json")} if examples_dir.is_dir() else set()
+    missing_examples = sorted(REQUIRED_WORKSPACE_EXAMPLES - present_examples)
+    if missing_examples:
+        errors.append(f"Missing workspace examples: {', '.join(missing_examples)}")
     text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
-    for relative in sorted(set(re.findall(r"(?:references|scripts|evaluations)/[A-Za-z0-9_.-]+", text))):
+    for relative in sorted(set(re.findall(r"(?:references|scripts|evaluations|schemas|examples)/[A-Za-z0-9_.-]+", text))):
         if not (ROOT / relative).exists():
             errors.append(f"SKILL.md references missing resource: {relative}")
 
 
 def validate_markdown_links(errors: list[str]) -> None:
-    for path in [ROOT / "README.md", *sorted((ROOT / "docs").glob("*.md"))]:
+    paths = [ROOT / "README.md", ROOT / "README.zh-CN.md", *sorted((ROOT / "docs").glob("*.md"))]
+    for path in paths:
+        if not path.is_file():
+            continue
         text = path.read_text(encoding="utf-8")
         for target in re.findall(r"\[[^\]]*\]\(([^)]+)\)", text):
             if target.startswith(("http://", "https://", "#", "mailto:")):
@@ -84,11 +109,24 @@ def validate_markdown_links(errors: list[str]) -> None:
 
 
 def validate_json(errors: list[str]) -> None:
+    paths = [
+        ROOT / "evaluations/result.schema.json",
+        ROOT / "evaluations/example-results.json",
+        ROOT / "evaluations/v2/result.schema.json",
+        ROOT / "evaluations/v2/example-results.json",
+        ROOT / "schemas/workspace.schema.json",
+        *sorted((ROOT / "examples").glob("*.json")),
+    ]
+    decoded = {}
+    for path in paths:
+        try:
+            decoded[path] = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            errors.append(f"JSON error in {path.relative_to(ROOT)}: {exc}")
     try:
-        schema = json.loads((ROOT / "evaluations/result.schema.json").read_text(encoding="utf-8"))
-        example = json.loads((ROOT / "evaluations/example-results.json").read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        errors.append(f"Evaluation JSON error: {exc}")
+        schema = decoded[ROOT / "evaluations/result.schema.json"]
+        example = decoded[ROOT / "evaluations/example-results.json"]
+    except KeyError:
         return
     required = schema["$defs"]["run"]["required"]
     properties: dict[str, Any] = schema["$defs"]["run"]["properties"]
@@ -106,6 +144,9 @@ def validate_json(errors: list[str]) -> None:
                 errors.append("Synthetic false-success example cannot claim independent L3 success")
     if not example.get("runs"):
         errors.append("Evaluation example contains no runs")
+    for path, data in decoded.items():
+        if path.parent == ROOT / "examples" and data.get("schema_version") != "1.0.0":
+            errors.append(f"Workspace example {path.name} must use schema_version 1.0.0")
 
 
 def validate_python(errors: list[str]) -> None:

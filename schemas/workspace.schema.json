@@ -1,0 +1,1045 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hcu-desktop-automation.invalid/schemas/workspace.schema.json",
+  "title": "Dynamic UI RPA Task Workspace",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "workspace_id",
+    "revision",
+    "timestamps",
+    "task",
+    "lifecycle",
+    "routing",
+    "steps",
+    "execution",
+    "engine_context",
+    "handoffs",
+    "mutations",
+    "artifacts",
+    "result"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "workspace_id": {
+      "type": "string",
+      "format": "uuid",
+      "minLength": 1
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "timestamps": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "created_at": {
+          "$ref": "#/$defs/date_time"
+        },
+        "updated_at": {
+          "$ref": "#/$defs/date_time"
+        }
+      }
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "goal",
+        "constraints",
+        "success_criteria",
+        "risk_level"
+      ],
+      "properties": {
+        "goal": {
+          "type": "string",
+          "minLength": 1
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "success_criteria": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "risk_level": {
+          "$ref": "#/$defs/risk_level"
+        }
+      }
+    },
+    "lifecycle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "current_phase",
+        "started_at",
+        "completed_at",
+        "stop_reason"
+      ],
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/lifecycle_status"
+        },
+        "current_phase": {
+          "type": "string",
+          "minLength": 1
+        },
+        "started_at": {
+          "$ref": "#/$defs/nullable_date_time"
+        },
+        "completed_at": {
+          "$ref": "#/$defs/nullable_date_time"
+        },
+        "stop_reason": {
+          "$ref": "#/$defs/nullable_string"
+        }
+      }
+    },
+    "routing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "planned_stages",
+        "active_stage_id",
+        "active_engine",
+        "last_handoff_id"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "browser_only",
+            "desktop_only",
+            "hybrid"
+          ]
+        },
+        "planned_stages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stage"
+          }
+        },
+        "active_stage_id": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "active_engine": {
+          "$ref": "#/$defs/nullable_engine"
+        },
+        "last_handoff_id": {
+          "$ref": "#/$defs/nullable_string"
+        }
+      }
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/step"
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "last_verified_state",
+        "next_action",
+        "blockers"
+      ],
+      "properties": {
+        "last_verified_state": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "next_action": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "blockers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "desktop_folder": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "app_paths": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "engines": {
+          "type": "object",
+          "additionalProperties": {
+            "enum": [
+              "ready",
+              "unavailable",
+              "unknown"
+            ]
+          }
+        },
+        "validated_at": {
+          "$ref": "#/$defs/nullable_date_time"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/event"
+      }
+    },
+    "engine_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "browser",
+        "desktop"
+      ],
+      "properties": {
+        "browser": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "space_id"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "not_started",
+                "ready",
+                "active",
+                "blocked",
+                "finished"
+              ]
+            },
+            "space_id": {
+              "$ref": "#/$defs/nullable_string"
+            }
+          }
+        },
+        "desktop": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "not_started",
+                "ready",
+                "active",
+                "blocked",
+                "finished"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "handoffs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/handoff"
+      }
+    },
+    "mutations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/mutation"
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "verification_summary"
+      ],
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/result_status"
+        },
+        "verification_summary": {
+          "$ref": "#/$defs/nullable_string"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "lifecycle": {
+            "properties": {
+              "status": {
+                "const": "completed"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "lifecycle": {
+            "properties": {
+              "completed_at": {
+                "$ref": "#/$defs/date_time"
+              }
+            }
+          },
+          "result": {
+            "properties": {
+              "status": {
+                "const": "completed"
+              },
+              "verification_summary": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "result": {
+            "properties": {
+              "status": {
+                "const": "completed"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "lifecycle": {
+            "properties": {
+              "status": {
+                "const": "completed"
+              },
+              "completed_at": {
+                "$ref": "#/$defs/date_time"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "lifecycle": {
+            "properties": {
+              "status": {
+                "const": "safe_stopped"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "lifecycle": {
+            "properties": {
+              "stop_reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "result": {
+            "properties": {
+              "status": {
+                "const": "safe_stopped"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "lifecycle": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "blocked",
+                  "failed",
+                  "aborted"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "lifecycle": {
+            "properties": {
+              "stop_reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "date_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "nullable_date_time": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/date_time"
+        }
+      ]
+    },
+    "nullable_string": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "minLength": 1
+        }
+      ]
+    },
+    "uuid": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "risk_level": {
+      "enum": [
+        "R0",
+        "R1",
+        "R2"
+      ]
+    },
+    "evidence_level": {
+      "enum": [
+        "L1",
+        "L2",
+        "L3"
+      ]
+    },
+    "engine": {
+      "enum": [
+        "browser",
+        "desktop"
+      ]
+    },
+    "nullable_engine": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/engine"
+        }
+      ]
+    },
+    "lifecycle_status": {
+      "enum": [
+        "created",
+        "planned",
+        "running",
+        "blocked",
+        "paused",
+        "verifying",
+        "completed",
+        "failed",
+        "aborted",
+        "safe_stopped"
+      ]
+    },
+    "result_status": {
+      "enum": [
+        "in_progress",
+        "verifying",
+        "completed",
+        "failed",
+        "aborted",
+        "safe_stopped",
+        "blocked",
+        "paused"
+      ]
+    },
+    "stage_status": {
+      "enum": [
+        "pending",
+        "in_progress",
+        "completed",
+        "blocked",
+        "unknown",
+        "skipped"
+      ]
+    },
+    "step_status": {
+      "enum": [
+        "pending",
+        "in_progress",
+        "completed",
+        "failed",
+        "blocked",
+        "unknown",
+        "skipped"
+      ]
+    },
+    "verification_status": {
+      "enum": [
+        "not_verified",
+        "verified",
+        "unknown",
+        "failed"
+      ]
+    },
+    "effect_state": {
+      "enum": [
+        "prepared",
+        "dispatched",
+        "confirmed",
+        "unknown",
+        "failed"
+      ]
+    },
+    "handoff_status": {
+      "enum": [
+        "prepared",
+        "completed",
+        "failed"
+      ]
+    },
+    "artifact_creator": {
+      "enum": [
+        "browser",
+        "desktop",
+        "auxiliary"
+      ]
+    },
+    "artifact_type": {
+      "enum": [
+        "file",
+        "evidence",
+        "screenshot",
+        "other"
+      ]
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "at",
+        "engine",
+        "kind",
+        "round_trips",
+        "outcome"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "at": {
+          "$ref": "#/$defs/date_time"
+        },
+        "stage_id": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "engine": {
+          "enum": [
+            "browser",
+            "desktop",
+            "auxiliary",
+            "agent"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "stage_start",
+            "stage_end",
+            "engine_call",
+            "model_call",
+            "handoff",
+            "recovery",
+            "verification",
+            "mutation",
+            "other"
+          ]
+        },
+        "round_trips": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tokens": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "outcome": {
+          "enum": [
+            "ok",
+            "failed",
+            "recovered",
+            "blocked"
+          ]
+        },
+        "note": {
+          "$ref": "#/$defs/nullable_string"
+        }
+      }
+    },
+    "stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stage_id",
+        "description",
+        "engine",
+        "status",
+        "success_condition"
+      ],
+      "properties": {
+        "stage_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "engine": {
+          "$ref": "#/$defs/engine"
+        },
+        "status": {
+          "$ref": "#/$defs/stage_status"
+        },
+        "success_condition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "switch_condition": {
+          "$ref": "#/$defs/nullable_string"
+        }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "step_id",
+        "stage_id",
+        "description",
+        "engine",
+        "status",
+        "verification"
+      ],
+      "properties": {
+        "step_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stage_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "engine": {
+          "$ref": "#/$defs/engine"
+        },
+        "status": {
+          "$ref": "#/$defs/step_status"
+        },
+        "verification": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "evidence_level",
+            "summary",
+            "artifact_paths"
+          ],
+          "properties": {
+            "status": {
+              "$ref": "#/$defs/verification_status"
+            },
+            "evidence_level": {
+              "$ref": "#/$defs/evidence_level"
+            },
+            "summary": {
+              "$ref": "#/$defs/nullable_string"
+            },
+            "artifact_paths": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "skip_reason": {
+          "$ref": "#/$defs/nullable_string"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "completed"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "verification": {
+                "properties": {
+                  "status": {
+                    "const": "verified"
+                  },
+                  "evidence_level": {
+                    "enum": [
+                      "L1",
+                      "L2",
+                      "L3"
+                    ]
+                  },
+                  "summary": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "unknown"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "verification": {
+                "properties": {
+                  "status": {
+                    "const": "unknown"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "skipped"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "skip_reason"
+            ],
+            "properties": {
+              "skip_reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "handoff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "handoff_id",
+        "from_engine",
+        "to_engine",
+        "reason",
+        "last_verified_state",
+        "pending_action",
+        "status",
+        "created_at",
+        "completed_at"
+      ],
+      "properties": {
+        "handoff_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "from_engine": {
+          "$ref": "#/$defs/engine"
+        },
+        "to_engine": {
+          "$ref": "#/$defs/engine"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "last_verified_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pending_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "$ref": "#/$defs/handoff_status"
+        },
+        "created_at": {
+          "$ref": "#/$defs/date_time"
+        },
+        "completed_at": {
+          "$ref": "#/$defs/nullable_date_time"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "completed"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "completed_at": {
+                "$ref": "#/$defs/date_time"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "prepared"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "completed_at": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "mutation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mutation_id",
+        "step_id",
+        "target",
+        "operation",
+        "risk_level",
+        "effect_state",
+        "verification",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "mutation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "step_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "risk_level": {
+          "$ref": "#/$defs/risk_level"
+        },
+        "effect_state": {
+          "$ref": "#/$defs/effect_state"
+        },
+        "verification": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "evidence_summary"
+          ],
+          "properties": {
+            "status": {
+              "$ref": "#/$defs/verification_status"
+            },
+            "evidence_summary": {
+              "$ref": "#/$defs/nullable_string"
+            }
+          }
+        },
+        "created_at": {
+          "$ref": "#/$defs/date_time"
+        },
+        "updated_at": {
+          "$ref": "#/$defs/date_time"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "effect_state": {
+                "const": "confirmed"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "verification": {
+                "properties": {
+                  "status": {
+                    "const": "verified"
+                  },
+                  "evidence_summary": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "effect_state": {
+                "const": "unknown"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "verification": {
+                "properties": {
+                  "status": {
+                    "const": "unknown"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "type",
+        "relative_path",
+        "description",
+        "created_by_engine",
+        "created_at"
+      ],
+      "properties": {
+        "artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "$ref": "#/$defs/artifact_type"
+        },
+        "relative_path": {
+          "type": "string",
+          "pattern": "^artifacts/",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "created_by_engine": {
+          "$ref": "#/$defs/artifact_creator"
+        },
+        "created_at": {
+          "$ref": "#/$defs/date_time"
+        }
+      }
+    }
+  }
+}
