@@ -49,7 +49,8 @@ Before submitting a change, run:
 ```bash
 python3 scripts/validate_skill.py
 python3 -m unittest discover -s tests -v
-python3 scripts/summarize_results.py evaluations/example-results.json
+python3 scripts/summarize_results.py evaluations/v2/example-results.json
+python3 scripts/workspace_metrics.py examples/workspace.completed.json
 ```
 
 For HCU changes, also run the official smoke test and `computer-use doctor` on each affected platform. Record any untested native behavior explicitly rather than marking it supported by assumption.

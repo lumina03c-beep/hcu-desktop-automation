@@ -87,6 +87,12 @@ re-observe; continue from the saved semantic state.
   page handles.
 - A temporary switch does not end the task; do not call `finish()` until the
   whole goal is complete or explicitly aborted.
+- Record handoff segments for measurement: `prepare_started_at` (prepare work
+  begins), `target_ready_at` (target engine confirmed ready),
+  `reobserve_completed_at` (first necessary observation done), and the legacy
+  `created_at`/`completed_at` pair. File creation, app startup, and UI
+  verification that happen inside a handoff stage are stage work, not engine
+  switch latency.
 
 ## Environment cache
 
@@ -100,10 +106,16 @@ cache credentials, refs, coordinates, raw observations, or environment dumps.
 
 `events` records compact facts: one event per stage boundary, engine-call group,
 model-call group, handoff, recovery, or verification. `round_trips` counts calls
-to the engine; `tokens` stays `null` when unavailable; `outcome` is `ok`,
-`failed`, `recovered`, or `blocked`. Never store prompts, raw observations,
-screenshots, or payloads. Derive metrics with `scripts/workspace_metrics.py`;
-never invent missing telemetry.
+to the engine; token usage is recorded as `input_tokens`, `output_tokens`, and
+optionally `cached_input_tokens` (the legacy single `tokens` field remains
+valid for old records). `outcome` is `ok`, `failed`, `recovered`, `blocked`,
+or `safe_stopped`. Recovery events are explicit episodes: `eligible: false`
+marks records excluded from the recovery funnel, `strategy` is
+`retry-read`, `reobserve`, `fallback`, `reroute`, `compensate`, or `safe-stop`,
+`input_may_have_landed` flags uncertain input effects, and `failure_code`
+names the cause. Never store prompts, raw observations, screenshots, or
+payloads. Derive metrics with `scripts/workspace_metrics.py`; missing
+telemetry stays `null` there and is never counted as zero.
 
 ## Mutations
 
@@ -129,3 +141,6 @@ If unreadable or schema-invalid: preserve the original, never overwrite with a
 guess, look for a recoverable prior state or artifact, mark unverifiable steps
 `unknown`, and resume only from independently verified facts. `schema_version`
 changes require an explicit migration path; never silently rewrite old data.
+Readers tolerate a UTF-8 BOM in historical files; every write stays UTF-8
+without BOM, timestamps carry an explicit timezone, and JSON is validated
+before it is counted anywhere.

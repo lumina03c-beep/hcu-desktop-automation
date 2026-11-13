@@ -2,6 +2,56 @@
 
 All notable changes to this project are documented here. The format follows Keep a Changelog principles and versions follow semantic versioning where practical.
 
+## [5.4.0] - 2026-11-11
+
+### Added
+
+- Workspace telemetry schema extensions: `input_tokens`, `output_tokens`, and
+  `cached_input_tokens` per event; recovery episode fields (`eligible`,
+  `strategy`, `input_may_have_landed`, `failure_code`); a `safe_stopped` event
+  outcome; and handoff segmentation timestamps (`prepare_started_at`,
+  `target_ready_at`, `reobserve_completed_at`).
+- `scripts/workspace_to_v2.py`, the explicit Workspace to V2 evaluation
+  adapter; it refuses to fabricate `task_success` without an independent
+  verification verdict, requires runtime-only metrics (snapshots, AX/GUI
+  calls, duplicate mutations) via `--metrics-file`, and validates the record
+  against `evaluations/v2/result.schema.json`.
+- V2 summarization in `scripts/summarize_results.py`: records with
+  `schema_version: "2.0.0"` are the primary evaluation format; V1 stays
+  readable as a deprecated compatibility format and mixed V1/V2 batches are
+  rejected.
+- `telemetry_coverage` reporting in `scripts/workspace_metrics.py`: missing
+  tool, model, token, and recovery telemetry stays `null` and is never
+  reported as zero; a real zero requires an event stream that shows zero
+  calls.
+- Version consistency gate: `scripts/validate_skill.py` now fails when the
+  `SKILL.md` frontmatter version differs from the latest CHANGELOG entry.
+- CI now exercises Workspace metrics, V2 aggregation, and the Workspace to V2
+  adapter on bundled examples.
+
+### Changed
+
+- `scripts/workspace_metrics.py` separates `agent_claimed_success` (Workspace
+  claim) from `task_success` (independent verification; always `null` in
+  Workspace metrics), splits token totals into input/output/cached sums
+  (`total_tokens` replaces `token_cost`), counts recovery episodes with
+  explicit `eligible`, `recovered`, `safe_stopped`, and `failed` outcomes, and
+  reports handoff latency segments (prepare, target ready, reobserve, total)
+  plus P90 aggregates and per-metric coverage.
+- Workspace input robustness in `scripts/workspace_metrics.py`: BOM-tolerant
+  reads (output stays BOM-free), schema validation against
+  `schemas/workspace.schema.json`, explicit timezone-aware timestamp checks,
+  and negative durations are errors instead of being clamped to zero.
+- `evaluations/result.schema.json` (V1) is marked deprecated; new evaluation
+  data must use `evaluations/v2/result.schema.json`.
+
+### Safety
+
+- `task_success` cannot be derived from a Workspace claim:
+  `scripts/workspace_to_v2.py` requires `--verified` and `--verifier` and
+  fails otherwise.
+- No behavioral change to task execution, routing, or recovery rules.
+
 ## [5.3.0] - 2026-11-11
 
 ### Added

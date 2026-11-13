@@ -1,6 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "HCU Desktop Automation evaluation results",
+  "title": "HCU Desktop Automation evaluation results (V1, deprecated; use evaluations/v2/result.schema.json)",
+  "deprecated": true,
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "runs"],

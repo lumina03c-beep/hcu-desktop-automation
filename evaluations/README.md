@@ -4,10 +4,43 @@ This directory defines a machine-readable evaluation format. It does not contain
 
 ## Files
 
-- `result.schema.json` — JSON Schema for a set of runs.
-- `example-results.json` — **synthetic** records used to test aggregation and false-success detection.
+- `v2/result.schema.json` — **primary** JSON Schema for one evaluation run (per-run record).
+- `v2/example-results.json` — **synthetic** V2 records used to test aggregation and false-success detection.
+- `v2/example-metrics.json` — runtime-only metrics fixture for the bundled Workspace example.
+- `result.schema.json` — deprecated V1 schema, kept to read historical data; do not add fields.
+- `example-results.json` — **synthetic** V1 records for backward-compatibility tests.
 
 Do not present the example numbers as product performance. Real result files should be stored outside version control under `evaluations/results/` (ignored by Git) until they have been reviewed and redacted.
+
+## Pipeline
+
+```text
+Workspace (events/handoffs) → scripts/workspace_metrics.py (coverage-aware metrics)
+    → scripts/workspace_to_v2.py (requires --verified + --verifier + --metrics-file)
+    → evaluations/v2/result.schema.json record
+    → scripts/summarize_results.py (grouped by split and condition)
+```
+
+`scripts/summarize_results.py` auto-detects the record schema: V2
+(`schema_version: "2.0.0"`) is the primary path; V1 records remain readable
+and are reported with `record_schema: "v1"`. Never mix V1 and V2 records in
+one batch.
+
+To turn a Workspace into a V2 record:
+
+```bash
+python3 scripts/workspace_to_v2.py <workspace.json> \
+  --case-id <case> --verified true --verifier <verifier-id> \
+  --platform windows --client <client-id> --model <model-id> \
+  --metrics-file <runtime-metrics.json>
+```
+
+The adapter refuses to run without an independent verification verdict: the
+Workspace claim (`result.status`) is recorded only as
+`agent_claimed_success`, and `task_success` comes solely from `--verified`.
+Runtime-only metrics that a Workspace cannot derive (snapshots, AX/GUI calls,
+duplicate mutations) must be supplied via `--metrics-file`; missing fields
+are reported, never invented as zero.
 
 ## Conditions
 
@@ -47,11 +80,12 @@ Token fields may be `null` when the client cannot supply reliable counts. The su
 ## Aggregate
 
 ```bash
+python3 scripts/summarize_results.py evaluations/v2/example-results.json
 python3 scripts/summarize_results.py evaluations/example-results.json
 python3 scripts/summarize_results.py evaluations/results/run-*.json --output evaluations/results/summary.json
 ```
 
-The summarizer accepts either the schema's `{schema_version, runs}` object or a bare array of run objects. Output is grouped by split and condition and includes task success, false success, median cost/latency, recovery rate, and token coverage.
+The summarizer accepts either the schema's `{schema_version, runs}` object or a bare array of run objects. Output is grouped by split and condition and includes task success, false success, median cost/latency with P90, recovery rates (recovered/safe_stopped/failed separate), and token coverage.
 
 ## Evidence hygiene
 

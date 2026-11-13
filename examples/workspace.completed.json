@@ -151,6 +151,9 @@
       "kind": "model_call",
       "round_trips": 1,
       "outcome": "ok",
+      "input_tokens": 12000,
+      "output_tokens": 900,
+      "cached_input_tokens": 6000,
       "note": null
     },
     {
@@ -181,6 +184,7 @@
       "kind": "engine_call",
       "round_trips": 1,
       "outcome": "failed",
+      "failure_code": "stale_ref",
       "note": "Window title changed during a multi-step batch"
     },
     {
@@ -191,6 +195,10 @@
       "kind": "recovery",
       "round_trips": 1,
       "outcome": "recovered",
+      "failure_code": "stale_ref",
+      "input_may_have_landed": false,
+      "strategy": "reobserve",
+      "eligible": true,
       "note": "Switched to clipboard delivery with single-step actions"
     },
     {
@@ -234,7 +242,10 @@
       "pending_action": "Process the attachment in the native desktop application",
       "status": "completed",
       "created_at": "2026-11-10T08:23:00Z",
-      "completed_at": "2026-11-10T08:24:00Z"
+      "completed_at": "2026-11-10T08:24:00Z",
+      "prepare_started_at": "2026-11-10T08:23:00Z",
+      "target_ready_at": "2026-11-10T08:23:40Z",
+      "reobserve_completed_at": "2026-11-10T08:24:00Z"
     },
     {
       "handoff_id": "handoff-002",
@@ -245,7 +256,10 @@
       "pending_action": "Upload the processed attachment and verify the result",
       "status": "completed",
       "created_at": "2026-11-10T08:36:00Z",
-      "completed_at": "2026-11-10T08:37:00Z"
+      "completed_at": "2026-11-10T08:37:00Z",
+      "prepare_started_at": "2026-11-10T08:36:10Z",
+      "target_ready_at": "2026-11-10T08:36:50Z",
+      "reobserve_completed_at": "2026-11-10T08:37:00Z"
     }
   ],
   "mutations": [

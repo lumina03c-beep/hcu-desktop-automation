@@ -1,4 +1,5 @@
 import copy
+import re
 import unittest
 
 from workspace_support import iter_keys, load_example, validator
@@ -21,6 +22,8 @@ FORBIDDEN_KEY_TOKENS = (
     "coordinate",
 )
 
+TELEMETRY_TOKEN_KEYS = re.compile(r"(input|output|cached_input)_tokens$")
+
 
 class WorkspaceSafetyTests(unittest.TestCase):
     def test_examples_do_not_store_sensitive_or_engine_local_state(self):
@@ -28,6 +31,11 @@ class WorkspaceSafetyTests(unittest.TestCase):
             with self.subTest(example=name):
                 locations = [location.lower() for location in iter_keys(load_example(name))]
                 for token in FORBIDDEN_KEY_TOKENS:
+                    if token == "token":
+                        locations = [
+                            location for location in locations
+                            if not TELEMETRY_TOKEN_KEYS.search(location.split(".")[-1])
+                        ]
                     self.assertFalse(
                         any(token in location for location in locations),
                         f"Forbidden token {token!r} found in {name}",

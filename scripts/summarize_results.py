@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Aggregate HCU skill evaluation runs without third-party dependencies."""
+"""Aggregate Dynamic UI RPA evaluation runs without third-party dependencies.
+
+V2 records (`schema_version: "2.0.0"`, `evaluations/v2/result.schema.json`)
+are the primary format and are grouped by split and condition. V1 records
+remain readable for backward compatibility only; V1 is deprecated and must
+not receive new fields. V1 and V2 records must not be mixed in one batch.
+"""
 
 from __future__ import annotations
 
@@ -11,14 +17,20 @@ import sys
 from pathlib import Path
 from typing import Any
 
-REQUIRED = {
+V1_REQUIRED = {
     "run_id", "case_id", "split", "condition", "synthetic", "task_success",
     "agent_claimed_success", "evidence_level", "hcu_calls", "model_turns",
     "wall_time_ms", "input_tokens", "output_tokens", "recovery",
 }
+V2_REQUIRED = {
+    "run_id", "case_id", "split", "condition", "synthetic", "started_at",
+    "platform", "client", "model", "skill_version", "engine_profile",
+    "task_success", "agent_claimed_success", "independent_verifier",
+    "evidence_level", "metrics", "recovery", "error_codes",
+}
 
 
-def load_runs(patterns: list[str]) -> list[dict[str, Any]]:
+def load_runs(patterns: list[str]) -> tuple[str, list[dict[str, Any]]]:
     paths: list[Path] = []
     for pattern in patterns:
         matches = [Path(value) for value in glob.glob(pattern)]
@@ -30,6 +42,7 @@ def load_runs(patterns: list[str]) -> list[dict[str, Any]]:
         raise ValueError("No result files matched")
     runs: list[dict[str, Any]] = []
     seen_ids: set[str] = set()
+    versions: set[str] = set()
     for path in unique:
         value = json.loads(path.read_text(encoding="utf-8"))
         items = value.get("runs") if isinstance(value, dict) else value
@@ -38,14 +51,19 @@ def load_runs(patterns: list[str]) -> list[dict[str, Any]]:
         for run in items:
             if not isinstance(run, dict):
                 raise ValueError(f"Non-object run in {path}")
-            missing = sorted(REQUIRED - set(run))
+            version = "v2" if run.get("schema_version") == "2.0.0" else "v1"
+            versions.add(version)
+            required = V2_REQUIRED if version == "v2" else V1_REQUIRED
+            missing = sorted(required - set(run))
             if missing:
                 raise ValueError(f"Run {run.get('run_id', '<unknown>')} missing: {', '.join(missing)}")
             if run["run_id"] in seen_ids:
                 raise ValueError(f"Duplicate run_id: {run['run_id']}")
             seen_ids.add(run["run_id"])
             runs.append(run)
-    return runs
+    if len(versions) > 1:
+        raise ValueError(f"Cannot mix V1 and V2 records in one batch: {sorted(versions)}")
+    return versions.pop(), runs
 
 
 def median(values: list[Any]) -> float | int | None:
@@ -53,11 +71,81 @@ def median(values: list[Any]) -> float | int | None:
     return statistics.median(present) if present else None
 
 
+def p90(values: list[Any]) -> float | int | None:
+    present = [value for value in values if isinstance(value, (int, float)) and not isinstance(value, bool)]
+    if not present:
+        return None
+    ordered = sorted(present)
+    rank = 0.9 * (len(ordered) - 1)
+    lower = int(rank)
+    upper = min(lower + 1, len(ordered) - 1)
+    weight = rank - lower
+    return ordered[lower] + (ordered[upper] - ordered[lower]) * weight
+
+
 def ratio(numerator: int, denominator: int) -> float | None:
     return numerator / denominator if denominator else None
 
 
-def summarize_group(runs: list[dict[str, Any]]) -> dict[str, Any]:
+def group_key(run: dict[str, Any]) -> tuple[str, str]:
+    return run["split"], run["condition"]
+
+
+def summarize_v2_group(runs: list[dict[str, Any]]) -> dict[str, Any]:
+    count = len(runs)
+    successes = sum(run["task_success"] is True for run in runs)
+    claimed = sum(run["agent_claimed_success"] is True for run in runs)
+    false_successes = sum(
+        run["agent_claimed_success"] is True and run["task_success"] is False for run in runs
+    )
+    recovery = [run["recovery"] for run in runs]
+    eligible = sum(item["eligible"] for item in recovery)
+    recovered = sum(item["recovered"] for item in recovery)
+    safe_stopped = sum(item["safe_stopped"] for item in recovery)
+    failed = sum(item["failed"] for item in recovery)
+    metric = lambda name: [run["metrics"].get(name) for run in runs]  # noqa: E731
+    known_tokens = [
+        run for run in runs
+        if run["metrics"].get("input_tokens") is not None and run["metrics"].get("output_tokens") is not None
+    ]
+    first = runs[0]
+    return {
+        "schema": "v2",
+        "split": first["split"],
+        "condition": first["condition"],
+        "runs": count,
+        "synthetic_runs": sum(run["synthetic"] is True for run in runs),
+        "task_successes": successes,
+        "task_success_rate": ratio(successes, count),
+        "agent_claimed_successes": claimed,
+        "false_successes": false_successes,
+        "false_success_rate": ratio(false_successes, count),
+        "median_model_calls": median(metric("model_calls")),
+        "p90_model_calls": p90(metric("model_calls")),
+        "median_browser_calls": median(metric("browser_calls")),
+        "median_desktop_calls": median(metric("desktop_calls")),
+        "median_auxiliary_calls": median(metric("auxiliary_calls")),
+        "median_wall_time_ms": median(metric("wall_time_ms")),
+        "p90_wall_time_ms": p90(metric("wall_time_ms")),
+        "median_handoff_latency_ms": median(metric("handoff_latency_ms")),
+        "duplicate_mutations": sum(
+            value for value in metric("duplicate_mutations") if isinstance(value, int) and not isinstance(value, bool)
+        ),
+        "recovery_eligible": eligible,
+        "recovered": recovered,
+        "recovery_rate": ratio(recovered, eligible),
+        "safe_stopped": safe_stopped,
+        "recovery_failed": failed,
+        "token_coverage": ratio(len(known_tokens), count),
+        "median_input_tokens": median(metric("input_tokens")),
+        "median_output_tokens": median(metric("output_tokens")),
+        "median_total_tokens": median([
+            run["metrics"]["input_tokens"] + run["metrics"]["output_tokens"] for run in known_tokens
+        ]),
+    }
+
+
+def summarize_v1_group(runs: list[dict[str, Any]]) -> dict[str, Any]:
     count = len(runs)
     successes = sum(run["task_success"] is True for run in runs)
     false_successes = sum(
@@ -68,6 +156,7 @@ def summarize_group(runs: list[dict[str, Any]]) -> dict[str, Any]:
     known_tokens = [run for run in runs if run["input_tokens"] is not None and run["output_tokens"] is not None]
     first = runs[0]
     return {
+        "schema": "v1",
         "split": first["split"],
         "condition": first["condition"],
         "runs": count,
@@ -95,13 +184,15 @@ def summarize_group(runs: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def summarize(runs: list[dict[str, Any]]) -> dict[str, Any]:
+def summarize(version: str, runs: list[dict[str, Any]]) -> dict[str, Any]:
     grouped: dict[tuple[str, str], list[dict[str, Any]]] = {}
     for run in runs:
-        grouped.setdefault((run["split"], run["condition"]), []).append(run)
+        grouped.setdefault(group_key(run), []).append(run)
+    summarize_group = summarize_v2_group if version == "v2" else summarize_v1_group
     groups = [summarize_group(grouped[key]) for key in sorted(grouped)]
     return {
-        "schema_version": "1.0",
+        "schema_version": "2.0",
+        "record_schema": version,
         "run_count": len(runs),
         "synthetic_run_count": sum(run["synthetic"] is True for run in runs),
         "groups": groups,
@@ -114,7 +205,8 @@ def main() -> int:
     parser.add_argument("--output", type=Path, help="Write summary JSON instead of stdout only")
     args = parser.parse_args()
     try:
-        summary = summarize(load_runs(args.results))
+        version, runs = load_runs(args.results)
+        summary = summarize(version, runs)
         rendered = json.dumps(summary, indent=2, ensure_ascii=False) + "\n"
         if args.output:
             args.output.parent.mkdir(parents=True, exist_ok=True)

@@ -6,7 +6,10 @@ applications and task combinations never used to write rules.
 
 ## V2 evaluation
 
-Record every run with `evaluations/v2/result.schema.json`.
+Record every run with `evaluations/v2/result.schema.json`; it is the primary
+evaluation format. `evaluations/result.schema.json` (V1) is deprecated and
+accepts no new fields; it exists only to read historical data, and V1 and V2
+records must not be mixed in one aggregation batch.
 
 | Metric | Definition |
 | --- | --- |
@@ -15,16 +18,23 @@ Record every run with `evaluations/v2/result.schema.json`.
 | Model Calls per Task | actual model decision calls; `null` if unknown |
 | Tool Round Trips | Browser, Desktop, and auxiliary calls, reported separately |
 | Observation Calls | Browser snapshots/screenshots; Desktop AX/GUI calls |
-| Token Cost per Task | input and output tokens; `null` if unknown |
+| Token Cost per Task | input and output tokens reported separately; `null` if unknown |
 | End-to-End Latency | wall time from task start to verified terminal state |
-| Handoff Latency | PREPARE start to the next engine confirmed ready |
-| Recovery Rate | `recovered` / eligible failures; safe stops reported separately |
+| Handoff Latency | four segments: prepare (PREPARE+SAVE), target ready (decision to target usable), reobserve (target ready to first necessary observation done), and total; file creation and app startup inside a handoff stage are not engine-switch latency |
+| Recovery Rate | `recovered` / eligible episodes; `safe_stopped`, `failed`, and unresolved episodes reported separately |
 | Duplicate Mutation Rate | repeated external side effects / external mutations |
 
-Workspace instrumentation maps to the same metrics: `events[]` supplies round
-trips and recovery attempts, `handoffs[]` supplies handoff latency, and
-`lifecycle` supplies end-to-end latency. `scripts/workspace_metrics.py` computes
-per-task and aggregate values; missing telemetry stays `null`.
+Data flow: `events[]` and `handoffs[]` in the Workspace feed
+`scripts/workspace_metrics.py` (per-task and aggregate values, with
+`telemetry_coverage` reporting which metrics are missing). Runtime-only
+telemetry — model calls, tokens, snapshot/AX/GUI counts — should come from the
+Agent Runtime or tool-adapter logs, not from agent self-reports; if a client
+does not expose it, record `null`. Convert a Workspace into a V2 record with
+`scripts/workspace_to_v2.py`: it requires an independent `--verified` verdict
+and a `--verifier` identifier (the Workspace claim is never copied into
+`task_success`) plus a `--metrics-file` for fields the Workspace cannot
+derive. Summarize V2 records grouped by split and condition with
+`scripts/summarize_results.py`. Missing telemetry stays `null`.
 
 Rules:
 
@@ -92,9 +102,12 @@ Add at least six cases before claiming generalization:
    L3 and false success.
 5. Inspect wrong routes, unnecessary observations, skipped evidence, and unsafe
    retries; patch the responsible rule and rerun affected regression rows.
-6. Store results with `evaluations/result.schema.json` and summarize with
-   `scripts/summarize_results.py`; preserve raw errors and artifact hashes. Never
-   commit credentials, personal files, or desktop screenshots.
+6. Store results with `evaluations/v2/result.schema.json` (or convert a
+   Workspace with `scripts/workspace_to_v2.py`) and summarize with
+   `scripts/summarize_results.py`; preserve raw errors and artifact hashes.
+   The V1 `evaluations/result.schema.json` format is deprecated and is read
+   only for historical data. Never commit credentials, personal files, or
+   desktop screenshots.
 
 ## Safety and budgets
 

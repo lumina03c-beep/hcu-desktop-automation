@@ -40,6 +40,31 @@ def frontmatter(text: str) -> tuple[dict[str, str], str]:
     return fields, text[end + 5:]
 
 
+def changelog_version() -> str:
+    text = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    match = re.search(r"^## \[(\d+\.\d+\.\d+)\]", text, re.MULTILINE)
+    if not match:
+        raise ValueError("CHANGELOG.md has no version heading")
+    return match.group(1)
+
+
+def validate_version_consistency(errors: list[str]) -> None:
+    try:
+        expected = changelog_version()
+    except ValueError as exc:
+        errors.append(str(exc))
+        return
+    text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+    match = re.search(r'^\s*version:\s*"?([^"\n]+)"?\s*$', text, re.MULTILINE)
+    if not match:
+        errors.append("SKILL.md frontmatter has no version field")
+        return
+    if match.group(1).strip() != expected:
+        errors.append(
+            f"SKILL.md version {match.group(1).strip()!r} does not match CHANGELOG version {expected!r}"
+        )
+
+
 def validate_frontmatter(errors: list[str]) -> None:
     path = ROOT / "SKILL.md"
     text = path.read_text(encoding="utf-8")
@@ -160,6 +185,7 @@ def validate_python(errors: list[str]) -> None:
 
 def main() -> int:
     errors: list[str] = []
+    validate_version_consistency(errors)
     validate_frontmatter(errors)
     validate_resources(errors)
     validate_markdown_links(errors)

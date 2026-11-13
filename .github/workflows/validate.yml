@@ -29,5 +29,11 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Check evaluation aggregation
         run: python scripts/summarize_results.py evaluations/example-results.json
+      - name: Check V2 evaluation aggregation
+        run: python scripts/summarize_results.py evaluations/v2/example-results.json
+      - name: Check workspace metrics
+        run: python scripts/workspace_metrics.py examples/workspace.completed.json
+      - name: Check workspace to V2 adapter
+        run: python scripts/workspace_to_v2.py examples/workspace.completed.json --case-id hybrid-customer-upload --verified true --verifier synthetic-independent-verifier --platform windows --client synthetic-client --model synthetic-model --synthetic --metrics-file evaluations/v2/example-metrics.json
       - name: Check setup CLI
         run: python scripts/hcu_setup.py --help

@@ -633,12 +633,65 @@
             }
           ]
         },
+        "input_tokens": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "output_tokens": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cached_input_tokens": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "failure_code": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "input_may_have_landed": {
+          "type": "boolean"
+        },
+        "strategy": {
+          "enum": [
+            "retry-read",
+            "reobserve",
+            "fallback",
+            "reroute",
+            "compensate",
+            "safe-stop"
+          ]
+        },
+        "eligible": {
+          "type": "boolean"
+        },
         "outcome": {
           "enum": [
             "ok",
             "failed",
             "recovered",
-            "blocked"
+            "blocked",
+            "safe_stopped"
           ]
         },
         "note": {
@@ -860,6 +913,15 @@
           "$ref": "#/$defs/date_time"
         },
         "completed_at": {
+          "$ref": "#/$defs/nullable_date_time"
+        },
+        "prepare_started_at": {
+          "$ref": "#/$defs/nullable_date_time"
+        },
+        "target_ready_at": {
+          "$ref": "#/$defs/nullable_date_time"
+        },
+        "reobserve_completed_at": {
           "$ref": "#/$defs/nullable_date_time"
         }
       },

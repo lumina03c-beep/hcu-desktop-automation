@@ -4,7 +4,7 @@ description: Use when a dynamic UI task needs Browser (ego-browser) or Desktop (
 license: MIT
 compatibility: Agent Skills-compatible clients. Browser tasks require the installed ego-browser skill; Desktop tasks require Microsoft HCU with AX/GUI. Python 3.10+ is needed only for the setup, validation, and evaluation scripts.
 metadata:
-  version: "5.2"
+  version: "5.4.0"
   upstream: "https://github.com/microsoft/Hybrid-Computer-Use"
 ---
 
@@ -95,5 +95,5 @@ See `references/recovery.md`.
   `references/contract.md`, `references/platforms.md`
 - Environments: `references/environments.md`; recovery: `references/recovery.md`
 - Evaluation: `references/testing.md`, `references/setup.md`,
-  `scripts/workspace_metrics.py`
+  `scripts/workspace_metrics.py`, `scripts/workspace_to_v2.py`
 - Examples: `examples/`
