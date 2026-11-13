@@ -64,21 +64,22 @@ Key capabilities:
 
 ## Quick start
 
-> **Read this first.** There is no one-click installer. Getting HCU running means compiling native code, which takes a few minutes and needs Go 1.22+, .NET 8 SDK (Windows), and PowerShell 7+ already on the machine. The steps below do the work for you, but the first build is not instant.
+> **Read this first.** The *skill itself* is a one-command install. HCU, the desktop engine, is different: running it means compiling native code, which takes a few minutes and needs Go 1.22+, .NET 8 SDK (Windows), and PowerShell 7+ already on the machine. The steps below do the work for you, but the first build is not instant.
 
-**The fastest path, in three commands:**
+**The fastest path: one command for the skill, then a read-only check for HCU.**
 
 ```bash
-git clone https://github.com/lumina03c-beep/hcu-desktop-automation.git
-cd hcu-desktop-automation
-python3 scripts/hcu_setup.py doctor     # read-only: tells you what is missing
+npx skills add lumina03c-beep/hcu-desktop-automation -g   # one command: installs the skill into your detected agents
+python3 scripts/hcu_setup.py doctor                       # read-only: tells you what is missing for HCU
 ```
 
-If `doctor` shows every tool as available, run `python3 scripts/hcu_setup.py install` and approve the plan it prints. If something is missing, install that tool first — the doctor names it.
+`npx skills add` requires Node.js 22.20+ and comes from [vercel-labs/skills](https://github.com/vercel-labs/skills), the open Agent Skills installer. It detects the agents already on your machine (Claude Code, OpenCode, Codex, Gemini CLI, Cursor, and more), places the skill where each one looks for it, and records a `skills-lock.json` so `npx skills check` and `npx skills update` keep it current. Without `-g` it installs into the current project only; on Windows, add `--copy` if symlink creation is not permitted on your system.
+
+Run `doctor` from the installed skill folder (for example `~/.config/opencode/skills/hcu-desktop-automation`) or from a plain git clone. If `doctor` shows every tool as available, run `python3 scripts/hcu_setup.py install` and approve the plan it prints. If something is missing, install that tool first — the doctor names it.
 
 ### Where to put the skill
 
-Agents discover skills in different directories. Copy or symlink the cloned folder into the one that matches your agent:
+`npx skills add` from Quick start does this for you automatically. Manual or offline alternative — agents discover skills in different directories, so copy or symlink the cloned folder into the one that matches your agent:
 
 | Agent | Skill directory | Notes |
 | --- | --- | --- |
@@ -94,6 +95,10 @@ Not sure? Run `python3 scripts/validate_skill.py` — it confirms the folder is 
 ### 1. Add this skill to your agent
 
 This repository is a standard [Agent Skills](https://agentskills.io/specification) directory. Any agent that supports that format can consume it without client-specific changes.
+
+The automated path is the `npx skills add` command from Quick start; it installs to your detected agents and supports later updates with `npx skills check` and `npx skills update`.
+
+Manual alternative, useful offline or when you want to pin a checkout:
 
 ```bash
 git clone https://github.com/lumina03c-beep/hcu-desktop-automation.git
@@ -221,11 +226,50 @@ Every action carries a risk class and must be verified at a specific evidence le
 
 **L1** proves input delivery, **L2** proves application/UI state, **L3** proves the user outcome or persisted artifact. Accepted input alone never completes a task.
 
+## Visual walkthrough
+
+The same loop, rendered as a 15-page illustrated deck (static images under `docs/images/principles/` — none of this ships with the runtime skill).
+
+<details>
+<summary><strong>Open the 15-page walkthrough</strong></summary>
+
+![S1 · Cover — a successful click is not a completed task](docs/images/principles/slide-01.png)
+
+![S2 · Reading map](docs/images/principles/slide-02.png)
+
+![S3 · The problem](docs/images/principles/slide-03.png)
+
+![S4 · The loop — eight steps](docs/images/principles/slide-04.png)
+
+![S5 · The task contract](docs/images/principles/slide-05.png)
+
+![S6 · Workspace — one task, one authoritative JSON](docs/images/principles/slide-06.png)
+
+![S7 · Routing by where the truth lives](docs/images/principles/slide-07.png)
+
+![S8 · Inside the desktop — AX vs GUI](docs/images/principles/slide-08.png)
+
+![S9 · Risk classes R0 / R1 / R2](docs/images/principles/slide-09.png)
+
+![S10 · Evidence levels L1 / L2 / L3](docs/images/principles/slide-10.png)
+
+![S11 · Execution discipline — batch vs split](docs/images/principles/slide-11.png)
+
+![S12 · Recovery — ledger, two-strike rule, safe stop](docs/images/principles/slide-12.png)
+
+![S13 · Honest evaluation — measure fake success separately](docs/images/principles/slide-13.png)
+
+![S14 · Quick start — three commands](docs/images/principles/slide-14.png)
+
+![S15 · The end of the loop — a verified result](docs/images/principles/slide-15.png)
+
+</details>
+
 ## Compatibility
 
 ### Agent and MCP clients
 
-The core skill follows the [Agent Skills specification](https://agentskills.io/specification). Skill discovery and installation remain client-specific; MCP registration is handled separately by `scripts/hcu_setup.py`.
+The core skill follows the [Agent Skills specification](https://agentskills.io/specification). Skill discovery and installation remain client-specific; the [`npx skills`](https://github.com/vercel-labs/skills) CLI automates skill installation for many of these clients, while MCP registration is handled separately by `scripts/hcu_setup.py`.
 
 | Client | MCP setup adapter | Configuration behavior | Live desktop status |
 | --- | --- | --- | --- |
@@ -284,15 +328,19 @@ hcu-desktop-automation/
 ├── scripts/
 │   ├── hcu_setup.py            # HCU doctor/build/configure bootstrapper
 │   ├── validate_skill.py       # Offline project validation
+│   ├── workspace_metrics.py    # Coverage-aware Workspace metrics
+│   ├── workspace_to_v2.py      # Workspace to V2 evaluation adapter
 │   └── summarize_results.py    # Evaluation aggregation and false-success metrics
 ├── evaluations/
-│   ├── result.schema.json       # V1 HCU evaluation result schema
+│   ├── result.schema.json       # Deprecated V1 evaluation schema (read-only)
 │   ├── example-results.json     # Synthetic V1 evaluation example
 │   └── v2/
-│       ├── result.schema.json   # Dynamic UI RPA V2 evaluation schema
-│       └── example-results.json # Synthetic V2 Browser/Desktop/Hybrid example
+│       ├── result.schema.json   # Dynamic UI RPA V2 evaluation schema (primary)
+│       ├── example-results.json # Synthetic V2 Browser/Desktop/Hybrid example
+│       └── example-metrics.json # Runtime-only metrics fixture for the adapter
 ├── tests/                      # Unit and Workspace lifecycle tests
 ├── docs/                       # Product and architecture documentation
+│   └── images/principles/      # README walkthrough renders (15 pages)
 └── .github/workflows/          # CI validation
 ```
 
@@ -304,7 +352,9 @@ Run offline checks without installing HCU:
 python -m pip install -r requirements-dev.txt
 python3 scripts/validate_skill.py
 python3 -m unittest discover -s tests -v
-python3 scripts/summarize_results.py evaluations/example-results.json
+python3 scripts/summarize_results.py evaluations/v2/example-results.json
+python3 scripts/workspace_metrics.py examples/workspace.completed.json
+python3 scripts/workspace_to_v2.py examples/workspace.completed.json --case-id example --verified true --verifier check --platform windows --client example --model example --metrics-file evaluations/v2/example-metrics.json
 ```
 
 The development dependency provides full Draft 2020-12 validation for the Workspace schema and examples. CI runs these checks on Ubuntu, Windows, and macOS. It does **not** claim native desktop-input or live browser coverage; real HCU and ego-browser verification require an interactive desktop and the installed engines.

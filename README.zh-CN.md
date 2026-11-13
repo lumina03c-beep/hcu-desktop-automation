@@ -64,21 +64,22 @@
 
 ## 快速开始
 
-> **先读这段。** 没有一键安装包。要跑起 HCU 就得编译原生代码，需要几分钟，而且机器上得先有 Go 1.22+、.NET 8 SDK（Windows）和 PowerShell 7+。下面的步骤会替你完成这些活儿，但第一次构建不是瞬间的事。
+> **先读这段。** 技能**本体**一条命令就能装好。HCU 桌面引擎则不同：要跑起来就得编译原生代码，需要几分钟，而且机器上得先有 Go 1.22+、.NET 8 SDK（Windows）和 PowerShell 7+。下面的步骤会替你完成这些活儿，但第一次构建不是瞬间的事。
 
-**最快的路径，三条命令：**
+**最快的路径：技能一条命令，HCU 先做只读体检。**
 
 ```bash
-git clone https://github.com/lumina03c-beep/hcu-desktop-automation.git
-cd hcu-desktop-automation
-python3 scripts/hcu_setup.py doctor     # 只读：告诉你缺什么
+npx skills add lumina03c-beep/hcu-desktop-automation -g   # 一条命令：把技能装进检测到的 Agent
+python3 scripts/hcu_setup.py doctor                       # 只读：告诉你 HCU 还缺什么
 ```
 
-如果 `doctor` 显示所有工具都可用，就运行 `python3 scripts/hcu_setup.py install` 并批准它打印的方案。如果缺东西，先装那个工具 —— doctor 会点名。
+`npx skills add` 需要 Node.js 22.20+，来自 [vercel-labs/skills](https://github.com/vercel-labs/skills)（开放的 Agent Skills 安装器）。它会检测你机器上已装的 Agent（Claude Code、OpenCode、Codex、Gemini CLI、Cursor 等），把技能放到各自对应的目录，并写入 `skills-lock.json`，之后可用 `npx skills check` 和 `npx skills update` 保持更新。不加 `-g` 时只装到当前项目；Windows 上如果系统不允许创建符号链接，请加 `--copy`。
+
+在已安装的技能目录里（例如 `~/.config/opencode/skills/hcu-desktop-automation`）或普通 git clone 的目录里运行 `doctor`。如果 `doctor` 显示所有工具都可用，就运行 `python3 scripts/hcu_setup.py install` 并批准它打印的方案。如果缺东西，先装那个工具 —— doctor 会点名。
 
 ### 技能该放在哪
 
-不同 Agent 的技能目录不一样。把克隆下来的文件夹复制或软链到对应位置：
+快速开始里的 `npx skills add` 会自动完成这一步。手动或离线方式 —— 不同 Agent 的技能目录不一样，把克隆下来的文件夹复制或软链到对应位置：
 
 | Agent | 技能目录 | 备注 |
 | --- | --- | --- |
@@ -94,6 +95,10 @@ python3 scripts/hcu_setup.py doctor     # 只读：告诉你缺什么
 ### 1. 把技能添加到你的 Agent
 
 本仓库是标准的 [Agent Skills](https://agentskills.io/specification) 目录，任何支持该格式的 Agent 都能直接使用。
+
+自动方式就是快速开始里的 `npx skills add` 命令；它会装到检测到的 Agent，之后可用 `npx skills check` 和 `npx skills update` 保持更新。
+
+手动方式，适合离线场景或需要固定某个本地检出版本：
 
 ```bash
 git clone https://github.com/lumina03c-beep/hcu-desktop-automation.git
@@ -221,11 +226,50 @@ HCU 还提供 `python3 -m hcu.render_agent_config`，用于生成完整的 Codex
 
 **L1** 证明输入已送达，**L2** 证明应用/UI 状态，**L3** 证明用户结果或持久化产物。仅仅"输入被接受"永远不算完成任务。
 
+## 可视化讲解
+
+同样的闭环，渲染成 15 页图解（静态图在 `docs/images/principles/`，运行时技能不包含这些内容）。
+
+<details>
+<summary><strong>展开 15 页图解</strong></summary>
+
+![S1 · 封面 — 点击成功 ≠ 任务完成](docs/images/principles/slide-01.png)
+
+![S2 · 阅读地图](docs/images/principles/slide-02.png)
+
+![S3 · 问题：点击成功，不等于任务完成](docs/images/principles/slide-03.png)
+
+![S4 · 解法：一个闭环，八步走完](docs/images/principles/slide-04.png)
+
+![S5 · 任务契约：动手前，先立字据](docs/images/principles/slide-05.png)
+
+![S6 · Workspace：一个任务，一份权威 JSON](docs/images/principles/slide-06.png)
+
+![S7 · 路由：按"真相在哪里"选择通道](docs/images/principles/slide-07.png)
+
+![S8 · 桌面内部：AX 与 GUI 的分工](docs/images/principles/slide-08.png)
+
+![S9 · 风险分级：R0 / R1 / R2](docs/images/principles/slide-09.png)
+
+![S10 · 证据分级：L1 / L2 / L3](docs/images/principles/slide-10.png)
+
+![S11 · 执行纪律：什么时候批量，什么时候停下](docs/images/principles/slide-11.png)
+
+![S12 · 恢复：账本、两击与安全停止](docs/images/principles/slide-12.png)
+
+![S13 · 评测：把假成功单独度量](docs/images/principles/slide-13.png)
+
+![S14 · 上手：三条命令](docs/images/principles/slide-14.png)
+
+![S15 · 结语：闭环的终点，是验证过的结果](docs/images/principles/slide-15.png)
+
+</details>
+
 ## 兼容性
 
 ### Agent 与 MCP 客户端
 
-核心技能遵循 [Agent Skills 规范](https://agentskills.io/specification)。技能发现和安装仍因客户端而异；MCP 注册由 `scripts/hcu_setup.py` 单独处理。
+核心技能遵循 [Agent Skills 规范](https://agentskills.io/specification)。技能发现和安装仍因客户端而异；[`npx skills`](https://github.com/vercel-labs/skills) CLI 为其中许多客户端自动完成技能安装，而 MCP 注册由 `scripts/hcu_setup.py` 单独处理。
 
 | 客户端 | MCP 配置适配器 | 配置行为 | 实机桌面状态 |
 | --- | --- | --- | --- |
@@ -284,15 +328,19 @@ hcu-desktop-automation/
 ├── scripts/
 │   ├── hcu_setup.py            # HCU doctor/构建/配置引导脚本
 │   ├── validate_skill.py       # 离线项目校验
+│   ├── workspace_metrics.py    # 带覆盖率语义的 Workspace 指标
+│   ├── workspace_to_v2.py      # Workspace → V2 评测适配器
 │   └── summarize_results.py    # 评测聚合与假成功率指标
 ├── evaluations/
-│   ├── result.schema.json       # V1 HCU 评测结果 schema
+│   ├── result.schema.json       # 已弃用的 V1 评测 schema（仅读取历史数据）
 │   ├── example-results.json     # 合成 V1 评测示例
 │   └── v2/
-│       ├── result.schema.json   # 动态 UI RPA V2 评测 schema
-│       └── example-results.json # 合成 V2 浏览器/桌面/混合示例
+│       ├── result.schema.json   # 动态 UI RPA V2 评测 schema（主线）
+│       ├── example-results.json # 合成 V2 浏览器/桌面/混合示例
+│       └── example-metrics.json # 适配器所需运行时指标夹具
 ├── tests/                      # 单元测试与 Workspace 生命周期测试
 ├── docs/                       # 产品与架构文档
+│   └── images/principles/      # README 图解渲染图（15 页）
 └── .github/workflows/          # CI 校验
 ```
 
@@ -304,7 +352,9 @@ hcu-desktop-automation/
 python -m pip install -r requirements-dev.txt
 python3 scripts/validate_skill.py
 python3 -m unittest discover -s tests -v
-python3 scripts/summarize_results.py evaluations/example-results.json
+python3 scripts/summarize_results.py evaluations/v2/example-results.json
+python3 scripts/workspace_metrics.py examples/workspace.completed.json
+python3 scripts/workspace_to_v2.py examples/workspace.completed.json --case-id example --verified true --verifier check --platform windows --client example --model example --metrics-file evaluations/v2/example-metrics.json
 ```
 
 开发依赖用于对 Workspace Schema 和示例做完整的 Draft 2020-12 校验。CI 在 Ubuntu、Windows 和 macOS 上运行这些检查。它并**不**声称覆盖原生桌面输入或真实浏览器会话；真正的 HCU 与 ego-browser 验证需要交互式桌面和已安装的执行引擎。
